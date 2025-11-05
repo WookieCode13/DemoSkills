@@ -1,0 +1,95 @@
+# ---- OS/Editor Junk ----
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# ---- Git ----
+.orig
+*.orig
+*.rej
+
+# ---- C# / .NET ----
+bin/
+obj/
+out/
+[Bb]uild/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]*/
+.vs/
+TestResults/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.nupkg
+*.snupkg
+*.pdb
+*.mdb
+*.svclog
+_NCrunch_*
+*.ncrunch*
+nCrunchTemp_*
+packages/
+
+# Rider/Resharper
+_ReSharper*/
+*.DotSettings.user
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+
+# Virtual envs
+.venv/
+venv/
+env/
+ENV/
+pip-wheel-metadata/
+
+# Packaging / build
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Testing / coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+pytestdebug.log
+
+# Type checkers
+.pytype/
+.pyre/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Caches
+.cache/
+
+# ---- Env / Secrets ----
+.env
+*.env
+!*.env.example
+
+# ---- Logs ----
+logs/
+*.log
+
