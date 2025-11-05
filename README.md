@@ -2,6 +2,11 @@
 
 DemoSkills is a hands-on learning and showcase project that demonstrates modern backend development, DevOps, and AI-assisted coding workflows.
 
+## Project Status
+- **Phase**: Initial Setup
+- **Last Updated**: November 5, 2025
+- **Next Milestone**: Basic API Setup
+
 The project combines:
 - **C# and Python APIs**
 - **AWS deployment (Lambda + EC2/Web)**
@@ -10,6 +15,13 @@ The project combines:
 - **Git versioning**
 - **Kubernetes (future)**
 - **AI-assisted development using ChatGPT and GitHub Copilot**
+
+## Quick Links
+- [Technical Stack](./TECH_STACK.md)
+- [Project Structure](./STRUCTURE.md)
+- [AI Development Guide](./AI_NOTES.md)
+- [Setup Instructions](./SETUP_NOTES.md)
+- [Project Roadmap](./PLAN.md)
 
 ---
 
@@ -49,4 +61,12 @@ This project uses AI tools to help design, build, and automate code:
 - `/infrastructure` – AWS/K8s setup scripts
 
 ---
-## 📜 Lic
+## 🤖 AI Development Notes
+- This project actively uses AI-assisted development tools
+- See [AI_NOTES.md](./AI_NOTES.md) for detailed AI development guidelines
+- Key AI integrations:
+  - GitHub Copilot for real-time code assistance
+  - ChatGPT for architecture and planning
+  - Custom prompts for project-specific tasks
+
+## 📜 License
