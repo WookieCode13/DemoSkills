@@ -1,0 +1,15 @@
+### Environment
+# Uses `.vscode/rest-client.env.json` variables
+# Set `employeeApiBase` in the `local` or `customPort` environment.
+
+### Health check
+GET {{employeeApiBase}}/api/employees/health
+Accept: application/json
+
+### Swagger UI
+GET {{employeeApiBase}}/swagger
+
+### Weather (template)
+GET {{employeeApiBase}}/weatherforecast/
+Accept: application/json
+
