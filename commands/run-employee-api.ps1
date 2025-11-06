@@ -3,7 +3,8 @@ param(
     [switch]$NoBuild,
     [string]$Configuration = "Debug",
     [string]$Project = "apis/EmployeeAPI/EmployeeAPI.csproj",
-    [int]$Port
+    [int]$Port,
+    [int]$HttpsPort
 )
 
 $ErrorActionPreference = 'Stop'
@@ -12,7 +13,10 @@ $ErrorActionPreference = 'Stop'
 Push-Location (Join-Path $PSScriptRoot '..')
 try {
     $env:ASPNETCORE_ENVIRONMENT = "Development"
-    if ($Port) { $env:ASPNETCORE_URLS = "http://localhost:$Port" }
+    if ($Port) {
+        if (-not $HttpsPort) { $HttpsPort = $Port + 1 }
+        $env:ASPNETCORE_URLS = "http://localhost:$Port;https://localhost:$HttpsPort"
+    }
 
     if ($Watch) {
         # Hot reload on file changes
@@ -36,6 +40,6 @@ finally {
 # USAGE EXAMPLES
 #   pwsh -File commands/run-employee-api.ps1
 #   pwsh -File commands/run-employee-api.ps1 -Watch
-#   pwsh -File commands/run-employee-api.ps1 -Watch -Port 5219
+#   pwsh -File commands/run-employee-api.ps1 -Watch -Port 5219   # binds http://localhost:5219 and https://localhost:5220
+#   pwsh -File commands/run-employee-api.ps1 -Watch -Port 5219 -HttpsPort 7220
 #   pwsh -File commands/run-employee-api.ps1 -Configuration Release
-
