@@ -16,6 +16,10 @@ try {
     if ($Port) {
         if (-not $HttpsPort) { $HttpsPort = $Port + 1 }
         $env:ASPNETCORE_URLS = "http://localhost:$Port;https://localhost:$HttpsPort"
+        Write-Host "Binding URLs: $($env:ASPNETCORE_URLS)" -ForegroundColor Cyan
+    }
+    else {
+        Write-Host "No -Port specified. Using launchSettings profile (see Properties/launchSettings.json)." -ForegroundColor Yellow
     }
 
     if ($Watch) {
