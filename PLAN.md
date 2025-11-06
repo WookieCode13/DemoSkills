@@ -1,16 +1,18 @@
 # Project Plan — DemoSkills
 
 ## 🧩 Phase 1 — Setup
-- [ ] Create project folder structure
-- [ ] Add Markdown files (README, PLAN, AI_NOTES)
-- [ ] Enable GitHub Copilot Chat in VS Code
-- [ ] Initialize Git repository
+- [x] Create project folder structure
+- [x] Add Markdown files (README, PLAN, AI_NOTES)
+- [x] Enable GitHub Copilot Chat in VS Code
+- [x] Initialize Git repository
 
 ## ⚙️ Phase 2 — API Foundations
-- [ ] Create C# API project
-- [ ] Create Python API project
+- [ ] Create C# Employee API project
+- [ ] Create Python Company API project
+- [ ] Create C# Tax Calculator API project
 - [ ] Add Swagger / OpenAPI documentation
 - [ ] Add sample endpoints and tests
+- [ ] Add workspaces for each testable sub project.
 
 ## 🐳 Phase 3 — Dockerization
 - [ ] Create Dockerfiles for each API
@@ -22,12 +24,24 @@
 - [ ] Deploy API to AWS
 - [ ] Create teardown pipeline for resource cleanup
 
+
 ## 🧪 Phase 5 — Testing & Security
 - [ ] Add unit and BDD tests
 - [ ] Implement token-based authentication
 - [ ] Add logging and monitoring
 
-## 🖥️ Phase 6 — Frontend (Future)
+## 🗄️ Phase 6 — Database Integration
+- [ ] Connect APIs to local Linux PostgreSQL DB
+- [ ] Add migration script to create first tables
+- [ ] Add PostgreSQL DB in AWS
+- [ ] Connect APIs to DB (POST and GET)
+ 
+## 🪁 Phase 7 — Serverless & Messaging
+- [ ] Add Lambda functions (Python and C#)
+- [ ] Add SNS and SQS handling
+- [ ] Create/update pipelines to deploy, build, and tear down all AWS (cost saving)
+
+## 🖥️ Phase 8 — Frontend (Future)
 - [ ] Choose frontend framework
 - [ ] Build simple UI to consume APIs
 - [ ] Integrate authentication
