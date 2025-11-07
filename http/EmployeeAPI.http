@@ -1,6 +1,8 @@
 ### Environment
-# Uses `.vscode/rest-client.env.json` variables
-# Set `employeeApiBase` in the `local` or `customPort` environment.
+# Uses `rest-client.env.json` (workspace root) or `.vscode/rest-client.env.json`.
+# Select environment via: `REST Client: Switch Environment` (e.g., "local").
+# Default fallback (uncomment if your env isn’t picked up):
+@employeeApiBase = http://localhost:5016
 
 ### Health check
 GET {{employeeApiBase}}/api/employees/health
@@ -12,4 +14,3 @@ GET {{employeeApiBase}}/swagger
 ### Weather (template)
 GET {{employeeApiBase}}/weatherforecast/
 Accept: application/json
-
