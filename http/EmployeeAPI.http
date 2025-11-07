@@ -10,7 +10,3 @@ Accept: application/json
 
 ### Swagger UI
 GET {{employeeApiBase}}/swagger
-
-### Weather (template)
-GET {{employeeApiBase}}/weatherforecast/
-Accept: application/json

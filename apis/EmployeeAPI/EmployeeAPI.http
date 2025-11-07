@@ -10,8 +10,4 @@ Accept: application/json
 ### Swagger UI (HTML)
 GET {{EmployeeAPI_HostAddress}}/swagger
 
-### Sample weather (template)
-GET {{EmployeeAPI_HostAddress}}/weatherforecast/
-Accept: application/json
-
 ###
