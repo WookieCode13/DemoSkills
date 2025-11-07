@@ -1,0 +1,12 @@
+{
+  "folders": [
+    { "path": "apis/EmployeeAPI" },
+    { "path": "apis/EmployeeAPI/tests/unit/EmployeeAPI.UnitTests" }
+  ],
+  "settings": {
+    "dotnet.defaultSolution": "DemoSkills.sln",
+    "testing.automaticallyOpenPeekView": "never",
+    "csharp.suppressRichCodeNavigation": false
+  }
+}
+

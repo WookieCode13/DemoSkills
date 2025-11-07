@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using EmployeeAPI.Models;
 
 namespace EmployeeAPI.Controllers;
 
@@ -17,13 +18,12 @@ public class EmployeesController : ControllerBase
     public IActionResult Health()
     {
         _logger.LogInformation("Health check requested from {RemoteIp}", HttpContext.Connection.RemoteIpAddress?.ToString());
-        var payload = new
-        {
-            status = "ok",
-            service = "EmployeeAPI",
-            timestamp = DateTime.UtcNow.ToString("o")
-        };
-        _logger.LogInformation("Health check OK at {Timestamp}", payload.timestamp);
+        var payload = new HealthResponse(
+            Status: "ok",
+            Service: "EmployeeAPI",
+            Timestamp: DateTime.UtcNow.ToString("o")
+        );
+        _logger.LogInformation("Health check OK at {Timestamp}", payload.Timestamp);
         return Ok(payload);
     }
 }

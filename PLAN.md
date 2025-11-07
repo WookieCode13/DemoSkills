@@ -7,12 +7,13 @@
 - [x] Initialize Git repository
 
 ## ⚙️ Phase 2 — API Foundations
-- [ ] Create C# Employee API project
+- [x] Create C# Employee API project
 - [ ] Create Python Company API project
 - [ ] Create C# Tax Calculator API project
 - [ ] Add Swagger / OpenAPI documentation
 - [ ] Add sample endpoints and tests
 - [ ] Add workspaces for each testable sub project.
+- [ ] Add a swagger config SwaggerUIBundle for one swagger page with tabs.
 
 ## 🐳 Phase 3 — Dockerization
 - [ ] Create Dockerfiles for each API
