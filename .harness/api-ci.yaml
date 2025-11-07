@@ -1,0 +1,55 @@
+pipeline:
+  name: employee-api-ci
+  identifier: employee_api_ci
+  projectIdentifier: REPLACE_ME_PROJECT
+  orgIdentifier: REPLACE_ME_ORG
+  tags: {}
+  properties:
+    ci:
+      codebase:
+        connectorRef: REPLACE_ME_GIT_CONNECTOR
+        repoName: WookieCode13/DemoSkills
+        build: <+input>
+  stages:
+    - stage:
+        name: Build and Push
+        identifier: Build_and_Push
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Dotnet Restore + Test
+                  identifier: DotnetRestoreTest
+                  spec:
+                    shell: Sh
+                    command: |
+                      dotnet --info
+                      dotnet restore apis/EmployeeAPI/EmployeeAPI.csproj
+                      dotnet build apis/EmployeeAPI/EmployeeAPI.csproj -c Release --no-restore
+                      dotnet test apis/EmployeeAPI/tests/unit/EmployeeAPI.UnitTests/EmployeeAPI.UnitTests.csproj -c Release --no-build
+              - step:
+                  type: BuildAndPushECR
+                  name: Build and Push to ECR
+                  identifier: BuildAndPushECR
+                  spec:
+                    connectorRef: REPLACE_ME_AWS_CONNECTOR
+                    region: <+input>.allowedValues(us-east-1,us-west-2,eu-central-1)
+                    account: <+input>
+                    imageName: <+input>.default(employee-api)
+                    tags:
+                      - <+pipeline.sequenceId>
+                    dockerfile: apis/EmployeeAPI/Dockerfile
+                    context: apis/EmployeeAPI
+                    target:
+                      type: x86_64
+        when:
+          pipelineStatus: Success
+
