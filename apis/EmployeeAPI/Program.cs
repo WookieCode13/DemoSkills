@@ -1,4 +1,19 @@
-var builder = WebApplication.CreateBuilder(args);
+using Serilog;
+
+// Bootstrap Serilog early
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
+
+try
+{
+    var builder = WebApplication.CreateBuilder(args);
+
+    // Use Serilog for logging
+    builder.Host.UseSerilog((ctx, services, cfg) => cfg
+        .ReadFrom.Configuration(ctx.Configuration)
+        .Enrich.FromLogContext()
+        .WriteTo.Console());
 
 // Add services to the container.
 
@@ -7,7 +22,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var app = builder.Build();
+    var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -16,10 +31,22 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+    app.UseSerilogRequestLogging();
+
+    app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
-app.MapControllers();
+    app.MapControllers();
 
-app.Run();
+    Log.Information("Starting EmployeeAPI");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "EmployeeAPI terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
