@@ -98,3 +98,13 @@ Each API follows RESTful conventions:
 3. Deployment
    - Harness pipelines
    - AWS infrastructure
+
+### Test Folder Layout
+Every component that has a `tests/` folder should include the following subfolders:
+
+- `tests/unit/`
+- `tests/integration/`
+- `tests/bdd/features/`
+- `tests/bdd/steps/`
+
+This layout applies to each API (e.g., `apis/EmployeeAPI/tests/...`) and each lambda (e.g., `lambdas/TimeClockLambda/tests/...`).

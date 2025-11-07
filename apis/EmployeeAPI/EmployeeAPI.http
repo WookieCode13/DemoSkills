@@ -1,0 +1,13 @@
+@EmployeeAPI_HostAddress = http://localhost:5016
+# If using VS Code REST Client environments, you can instead set
+# `employeeApiBase` in `.vscode/rest-client.env.json` and comment the line above.
+# @EmployeeAPI_HostAddress = {{employeeApiBase}}
+
+### Health check
+GET {{EmployeeAPI_HostAddress}}/api/employees/health
+Accept: application/json
+
+### Swagger UI (HTML)
+GET {{EmployeeAPI_HostAddress}}/swagger
+
+###

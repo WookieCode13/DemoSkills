@@ -1,0 +1,18 @@
+{
+  "folders": [
+    { "path": "." }
+  ],
+  "settings": {
+    "dotnet.defaultSolution": "DemoSkills.sln",
+    "files.exclude": {
+      "**/bin": true,
+      "**/obj": true
+    },
+    "search.exclude": {
+      "**/bin": true,
+      "**/obj": true
+    },
+    "testing.automaticallyOpenPeekView": "never"
+  }
+}
+
