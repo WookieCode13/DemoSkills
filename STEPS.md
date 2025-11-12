@@ -2,18 +2,38 @@
 
 Goal: expose EmployeeAPI publicly at https://longranch.com/employee and see Swagger load. Start manual and cheap to learn; no Harness yet. Keep costs near zero by using a short‑lived EC2 you terminate after testing. Later we’ll automate and harden.
 
-## Step 1 — Cheap AWS smoke test (manual)
+## Step 1 — Cheap AWS smoke test (manual, UI‑first)
 
-- Launch EC2 (temporary):
-  - AMI: Amazon Linux 2023, Instance: `t3.micro` (x86_64), Security Group: allow `80/tcp` from your IP (or 0.0.0.0/0 for a quick test).
-  - Assign a public IP. Create/download a key pair.
-- Publish the API locally (self‑contained Linux x64):
-  - `dotnet publish apis/EmployeeAPI/EmployeeAPI.csproj -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -o publish/employeeapi`
-- Copy artifacts to EC2:
-  - `scp -r publish/employeeapi ec2-user@<EC2_PUBLIC_IP>:~/app`
-- On EC2: run the app and install Nginx for path `/employee`:
-  - `sudo dnf -y install nginx`
-  - `sudo systemctl enable --now nginx`
+- Plan: use a temporary EC2 with Nginx reverse proxy to serve `/employee` and load Swagger. Keep it simple and terminate when done.
+
+- Create Security Group (EC2 > Security Groups)
+  - Inbound rules: `HTTP (80/tcp)` from your IP, `SSH (22/tcp)` from your IP.
+
+- Launch EC2 (EC2 > Launch Instance)
+  - AMI: Amazon Linux 2023 (x86_64)
+  - Instance type: `t3.micro`
+  - Network: default VPC and a public subnet; Auto‑assign Public IP: Enabled
+  - Security group: the one above
+  - Key pair: create/download
+
+- (Optional) Allocate Elastic IP (EC2 > Elastic IPs)
+  - Allocate, then Associate to your instance (keeps DNS stable until teardown).
+
+- Publish artifact locally
+  - Use your script: `commands/publish-employeeapi.ps1` (or run):
+    - `dotnet publish apis/EmployeeAPI/EmployeeAPI.csproj -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -o publish/employeeapi`
+  - Zip the folder `publish/employeeapi`.
+
+- Upload ZIP to S3 (Console only)
+  - Create a private bucket; upload the ZIP.
+  - Select the object > Actions > Create presigned URL, copy the URL.
+
+- Connect to instance (no local SSH required)
+  - EC2 > Instances > Select instance > Connect > EC2 Instance Connect > Connect.
+
+- On the instance (paste commands)
+  - `sudo dnf -y install nginx && sudo systemctl enable --now nginx`
+  - `cd ~ && curl -L "<YOUR_PRESIGNED_URL>" -o app.zip && unzip -o app.zip -d app`
   - `cd ~/app && ASPNETCORE_URLS=http://0.0.0.0:8080 nohup ./EmployeeAPI > app.log 2>&1 &`
   - `sudo tee /etc/nginx/conf.d/employee.conf > /dev/null <<'NGINX'
 server {
@@ -30,8 +50,20 @@ server {
 }
 NGINX
 sudo nginx -t && sudo systemctl reload nginx`
-- DNS: point `longranch.com` A record to the EC2 public IP (or test first using the EC2 public DNS name instead of the domain).
-- Verify: browse to `http://longranch.com/employee/swagger` (or the EC2 public DNS + `/employee/swagger`).
-- Cost control: when done, stop or terminate the instance to avoid charges.
 
-Later: add HTTPS with Let’s Encrypt, swap to App Runner/ECS, and automate with Harness/Terraform once the manual path is clear.
+- DNS
+  - Point `longranch.com` A record to the instance’s Elastic IP (or its current public IP).
+
+- Verify
+  - Open `http://longranch.com/employee/swagger` (or the EC2 public DNS + `/employee/swagger`).
+  - If Swagger redirects to HTTPS and fails, temporarily remove `app.UseHttpsRedirection()` in `apis/EmployeeAPI/Program.cs`, republish, and re‑upload.
+
+- Teardown (avoid costs)
+  - Delete A record, disassociate/release Elastic IP, terminate the instance, delete the S3 object/bucket.
+
+Later: add HTTPS (Let’s Encrypt), then a managed service (App Runner/ECS), and finally Harness/Terraform for repeatability.
+
+My notes:
+EC2 (Elastic Compute Cloud)	Raw virtual machines in the cloud — you manage the OS, patching, scaling, and deployments yourself. Think “AWS’s version of a server.”
+ECS (Elastic Container Service)	AWS’s container orchestration service. It runs Docker containers for you on a cluster of EC2 instances (or serverless using Fargate). You focus on containers, not OS.
+NGINX is lightweight software that can: Serve static websites
