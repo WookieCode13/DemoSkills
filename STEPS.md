@@ -9,12 +9,19 @@ Goal: expose EmployeeAPI publicly at https://longranch.com/employee and see Swag
 - Create Security Group (EC2 > Security Groups)
   - Inbound rules: `HTTP (80/tcp)` from your IP, `SSH (22/tcp)` from your IP.
 
+- Create VPC (if needed)
+  - If you already have a default VPC with at least one public subnet, skip this section. If your VPC shows 0 subnets, create one of the following:
+  - Create default VPC: VPC console → Actions → Create default VPC (fastest).
+  - Or minimal public VPC: VPC → Create VPC → “VPC and more” → IPv4 CIDR `10.0.0.0/16`, AZs `1`, Public subnets `1`, Private subnets `0`, NAT gateways `0`. This creates an Internet Gateway and public route table for you.
+  - Using an existing VPC? Quick checks: has an Internet Gateway attached; public subnet’s route table has `0.0.0.0/0 → igw-…`; the subnet is associated to that route table; subnet setting “Auto-assign public IPv4” is Enabled (or enable public IP at launch).
+
 - Launch EC2 (EC2 > Launch Instance)
   - AMI: Amazon Linux 2023 (x86_64)
   - Instance type: `t3.micro`
   - Network: default VPC and a public subnet; Auto‑assign Public IP: Enabled
   - Security group: the one above
   - Key pair: create/download
+  - Launch instance
 
 - (Optional) Allocate Elastic IP (EC2 > Elastic IPs)
   - Allocate, then Associate to your instance (keeps DNS stable until teardown).
@@ -66,4 +73,8 @@ Later: add HTTPS (Let’s Encrypt), then a managed service (App Runner/ECS), and
 My notes:
 EC2 (Elastic Compute Cloud)	Raw virtual machines in the cloud — you manage the OS, patching, scaling, and deployments yourself. Think “AWS’s version of a server.”
 ECS (Elastic Container Service)	AWS’s container orchestration service. It runs Docker containers for you on a cluster of EC2 instances (or serverless using Fargate). You focus on containers, not OS.
-NGINX is lightweight software that can: Serve static websites
+NGINX: is lightweight software that can: Serve static websites.
+VPC:	Virtual network	Use default VPC
+SUBNET:	Network segment	Use public subnet
+IP:	Public access	Enable auto-assign public IP
+Internet Gateway:	Gives web access	Already attached to default VPC
