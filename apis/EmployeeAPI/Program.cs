@@ -32,13 +32,10 @@ builder.Services.AddSwaggerGen();
     var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-var enableSwagger = app.Environment.IsDevelopment() ||
-                    builder.Configuration.GetValue<bool>("EnableSwagger", false);
-if (enableSwagger)
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// Always enable Swagger for this demo project
+var enableSwagger = true;
+app.UseSwagger();
+app.UseSwaggerUI();
 
     app.UseSerilogRequestLogging();
 
