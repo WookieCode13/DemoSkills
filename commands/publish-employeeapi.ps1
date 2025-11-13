@@ -22,7 +22,14 @@ $procfilePath = Join-Path $output 'Procfile'
 Set-Content -Path $procfilePath -Value "web: dotnet EmployeeAPI.dll"
 Write-Host "Added Procfile for Elastic Beanstalk: $procfilePath" -ForegroundColor Yellow
 
-# Zip the published output
-Write-Host "Zipping published artifacts..." -ForegroundColor Yellow
-Compress-Archive -Path $output -DestinationPath $zipFile -Force
+# Basic validation
+if (-not (Test-Path (Join-Path $output 'EmployeeAPI.runtimeconfig.json'))) {
+  Write-Error 'Expected EmployeeAPI.runtimeconfig.json in publish output; framework-dependent publish may have failed.'
+  exit 1
+}
+
+# Zip the contents of the publish folder (no top-level directory)
+Write-Host "Zipping published artifacts (flattened to root)..." -ForegroundColor Yellow
+if (Test-Path $zipFile) { Remove-Item -Force $zipFile }
+Compress-Archive -Path (Join-Path $output '*') -DestinationPath $zipFile -Force
 Write-Host "Zip complete: $zipFile" -ForegroundColor Green
