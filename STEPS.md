@@ -2,9 +2,16 @@
 
 Goal: expose EmployeeAPI publicly at https://longranch.com/employee and see Swagger load. Start manual and cheap to learn; no Harness yet. Keep costs near zero by using a short‑lived EC2 you terminate after testing. Later we’ll automate and harden.
 
-## Step 1 — Cheap AWS smoke test (manual, UI‑first)
+## Step 1 - Cheap AWS smoke test (manual, UI-first)
 
 - Plan: use a temporary EC2 with Nginx reverse proxy to serve `/employee` and load Swagger. Keep it simple and terminate when done.
+
+- Quick reset: known-good recipe (no deep networking)
+  - VPC: VPC console → Actions → Create default VPC (fastest way to get public subnets and Internet Gateway).
+  - Security Group: allow `80/tcp` and `22/tcp` from your IP (temporarily 0.0.0.0/0 if needed to test; tighten later).
+  - Launch EC2: Amazon Linux 2023 (x86_64), `t3.micro`, default VPC, any public subnet, Auto-assign Public IP = Enabled, attach the SG above.
+  - After launch: confirm the instance shows a Public IPv4 address. If not, associate an Elastic IP (EC2 → Elastic IPs → Allocate → Associate).
+  - Connect: try EC2 Instance Connect (browser). If that fails, use local SSH: `ssh -i <path-to-pem> ec2-user@<Public-IP>`.
 
 - Create Security Group (EC2 > Security Groups)
   - Inbound rules: `HTTP (80/tcp)` from your IP, `SSH (22/tcp)` from your IP.
@@ -70,11 +77,17 @@ sudo nginx -t && sudo systemctl reload nginx`
 
 Later: add HTTPS (Let’s Encrypt), then a managed service (App Runner/ECS), and finally Harness/Terraform for repeatability.
 
+---
 My notes:
 EC2 (Elastic Compute Cloud)	Raw virtual machines in the cloud — you manage the OS, patching, scaling, and deployments yourself. Think “AWS’s version of a server.”
 ECS (Elastic Container Service)	AWS’s container orchestration service. It runs Docker containers for you on a cluster of EC2 instances (or serverless using Fargate). You focus on containers, not OS.
 NGINX: is lightweight software that can: Serve static websites.
-VPC:	Virtual network	Use default VPC
+VPC:	Virtual Private Cloud - Virtual network	Use default VPC
 SUBNET:	Network segment	Use public subnet
 IP:	Public access	Enable auto-assign public IP
 Internet Gateway:	Gives web access	Already attached to default VPC
+ 
+Optional: avoid SSH entirely (Session Manager)
+- Create an IAM role with `AmazonSSMManagedInstanceCore`, attach it to the instance (EC2 → Actions → Security → Modify IAM role).
+- Then connect via: EC2 → Instances → Connect → Session Manager tab → Connect.
+- This works without opening port 22; only outbound internet from the subnet is needed.
