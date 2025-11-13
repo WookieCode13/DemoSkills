@@ -121,3 +121,23 @@ Optional: avoid SSH entirely (Session Manager)
   - IAM → Roles → select the test role (e.g., with AmazonSSMManagedInstanceCore) → Delete role.
 
 Tip: make sure you’re in the same AWS region for all of the above. Once these are gone, you’re back to a clean slate to relaunch using the “Quick reset” recipe.
+## Alternative: Elastic Beanstalk (simplest managed, no SSH)
+
+- Why: fastest path to a public URL without touching VPC/SG beyond defaults.
+- Our publish script now adds a `Procfile` so Beanstalk can start the self-contained binary.
+
+Steps (Console-only)
+- Run your publish script to refresh the ZIP: `commands/publish-employeeapi.ps1`
+  - The ZIP is at `publish/employeeapi.zip` and includes `Procfile` and `EmployeeAPI` binary.
+- Elastic Beanstalk → Create application
+  - Application name: `employeeapi`
+  - Platform: `.NET on Linux` (latest .NET 8 on Amazon Linux 2023)
+  - Environment: `Web server` → Environment type: `Single instance` (cheapest)
+  - Application code: `Upload your code` → choose `publish/employeeapi.zip`
+  - Leave defaults; Create environment.
+- Wait for status `Health: Ok` and note the URL like `http://<env>.elasticbeanstalk.com`
+- Verify: open `<env-url>/swagger`
+  - (The `/employee` path prefix can come later; for now just confirm Swagger loads.)
+
+Cleanup
+- In Elastic Beanstalk: Actions → Terminate environment; then delete the application to remove all resources.
