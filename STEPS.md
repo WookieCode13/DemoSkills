@@ -91,3 +91,33 @@ Optional: avoid SSH entirely (Session Manager)
 - Create an IAM role with `AmazonSSMManagedInstanceCore`, attach it to the instance (EC2 → Actions → Security → Modify IAM role).
 - Then connect via: EC2 → Instances → Connect → Session Manager tab → Connect.
 - This works without opening port 22; only outbound internet from the subnet is needed.
+
+## Cleanup / Reset (UI only)
+
+- EC2 instance
+  - EC2 → Instances → select your instance → Instance state → Terminate instance → Confirm.
+
+- Elastic IP (if used)
+  - EC2 → Elastic IPs → select the EIP → Actions → Disassociate Elastic IP address → then Actions → Release Elastic IP address.
+
+- Security Group
+  - EC2 → Security Groups → select the SG you created → Delete. If deletion is blocked, ensure the instance is terminated and no ENIs reference it.
+
+- S3 artifact
+  - S3 → open the bucket → delete the uploaded ZIP object → then delete the bucket if you created it just for this test (Bucket → Empty → Delete bucket).
+
+- DNS record
+  - Route 53 (or your registrar) → Hosted zone for `longranch.com` → delete the A record you added.
+
+- VPC (only if you created a new one for this test)
+  - VPC → Your VPCs → select the test VPC → Actions → Delete VPC. The console will offer to remove dependent resources (subnets, route tables, IGW).
+  - Do NOT delete the region’s default VPC if you plan to use it later.
+
+- Key pair (optional)
+  - EC2 → Key pairs → delete the test key pair if you won’t reuse it.
+
+- IAM role (optional, if you created one for Session Manager)
+  - EC2 → select instance (if still present) → Actions → Security → Modify IAM role → detach.
+  - IAM → Roles → select the test role (e.g., with AmazonSSMManagedInstanceCore) → Delete role.
+
+Tip: make sure you’re in the same AWS region for all of the above. Once these are gone, you’re back to a clean slate to relaunch using the “Quick reset” recipe.
