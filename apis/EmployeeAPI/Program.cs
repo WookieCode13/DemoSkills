@@ -52,24 +52,7 @@ if (enableSwagger)
 
 app.UseAuthorization();
 
-    // Root redirect to Swagger when enabled; otherwise simple OK
-    app.MapGet("/", () =>
-    {
-        if (enableSwagger)
-        {
-            var redirectPath = string.IsNullOrWhiteSpace(pathBase) ? "/swagger" : $"{pathBase}/swagger";
-            return Results.Redirect(redirectPath);
-        }
-        return Results.Ok(new { status = "ok", service = "EmployeeAPI" });
-    });
-
-    // Top-level health endpoint for quick checks
-    app.MapGet("/health", () => Results.Json(new
-    {
-        status = "ok",
-        service = "EmployeeAPI",
-        timestamp = DateTime.UtcNow.ToString("o")
-    }));
+    // Note: No root ("/") or top-level "/health" endpoints
 
     app.MapControllers();
 
