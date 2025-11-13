@@ -71,6 +71,16 @@ app.UseAuthorization();
         timestamp = DateTime.UtcNow.ToString("o")
     }));
 
+    // Redirect old /api/* paths to versioned /v1.0.0/* to match work setup
+    app.MapGet("/api/{**catchall}", (string? catchall) =>
+    {
+        var rest = string.IsNullOrWhiteSpace(catchall) ? string.Empty : catchall;
+        var target = string.IsNullOrWhiteSpace(pathBase)
+            ? $"/v1.0.0/{rest}"
+            : $"{pathBase}/v1.0.0/{rest}";
+        return Results.Redirect(target, permanent: true);
+    });
+
     app.MapControllers();
 
     Log.Information("Starting EmployeeAPI");

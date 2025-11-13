@@ -5,7 +5,7 @@ using EmployeeAPI.Models;
 namespace EmployeeAPI.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("v1.0.0/[controller]")]
 public class EmployeesController : ControllerBase
 {
     private readonly ILogger<EmployeesController> _logger;
