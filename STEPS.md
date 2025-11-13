@@ -1,143 +1,50 @@
 # Deployment Steps (Learning Log)
 
-Goal: expose EmployeeAPI publicly at https://longranch.com/employee and see Swagger load. Start manual and cheap to learn; no Harness yet. Keep costs near zero by using a short‑lived EC2 you terminate after testing. Later we’ll automate and harden.
+Goal: deploy EmployeeAPI quickly using Elastic Beanstalk, verify Swagger, and keep costs low. We’ll add domains and path routing later. Keep this simple and manual for learning.
 
-## Step 1 - Cheap AWS smoke test (manual, UI-first)
+## Prerequisites
 
-- Plan: use a temporary EC2 with Nginx reverse proxy to serve `/employee` and load Swagger. Keep it simple and terminate when done.
+- AWS account with console access
+- .NET 8 SDK installed locally
+- This repo checked out; publishing script: `commands/publish-employeeapi.ps1`
 
-- Quick reset: known-good recipe (no deep networking)
-  - VPC: VPC console → Actions → Create default VPC (fastest way to get public subnets and Internet Gateway).
-  - Security Group: allow `80/tcp` and `22/tcp` from your IP (temporarily 0.0.0.0/0 if needed to test; tighten later).
-  - Launch EC2: Amazon Linux 2023 (x86_64), `t3.micro`, default VPC, any public subnet, Auto-assign Public IP = Enabled, attach the SG above.
-  - After launch: confirm the instance shows a Public IPv4 address. If not, associate an Elastic IP (EC2 → Elastic IPs → Allocate → Associate).
-  - Connect: try EC2 Instance Connect (browser). If that fails, use local SSH: `ssh -i <path-to-pem> ec2-user@<Public-IP>`.
+## Step 1 — Publish artifact (self‑contained)
 
-- Create Security Group (EC2 > Security Groups)
-  - Inbound rules: `HTTP (80/tcp)` from your IP, `SSH (22/tcp)` from your IP.
+- Run: `commands/publish-employeeapi.ps1`
+- Outputs: `publish/employeeapi` folder and `publish/employeeapi.zip`
+- The script writes a `Procfile` so Beanstalk can start the app: `web: ./EmployeeAPI`
 
-- Create VPC (if needed)
-  - If you already have a default VPC with at least one public subnet, skip this section. If your VPC shows 0 subnets, create one of the following:
-  - Create default VPC: VPC console → Actions → Create default VPC (fastest).
-  - Or minimal public VPC: VPC → Create VPC → “VPC and more” → IPv4 CIDR `10.0.0.0/16`, AZs `1`, Public subnets `1`, Private subnets `0`, NAT gateways `0`. This creates an Internet Gateway and public route table for you.
-  - Using an existing VPC? Quick checks: has an Internet Gateway attached; public subnet’s route table has `0.0.0.0/0 → igw-…`; the subnet is associated to that route table; subnet setting “Auto-assign public IPv4” is Enabled (or enable public IP at launch).
+## Step 2 — Create Elastic Beanstalk app (UI only)
 
-- Launch EC2 (EC2 > Launch Instance)
-  - AMI: Amazon Linux 2023 (x86_64)
-  - Instance type: `t3.micro`
-  - Network: default VPC and a public subnet; Auto‑assign Public IP: Enabled
-  - Security group: the one above
-  - Key pair: create/download
-  - Launch instance
-
-- (Optional) Allocate Elastic IP (EC2 > Elastic IPs)
-  - Allocate, then Associate to your instance (keeps DNS stable until teardown).
-
-- Publish artifact locally
-  - Use your script: `commands/publish-employeeapi.ps1` (or run):
-    - `dotnet publish apis/EmployeeAPI/EmployeeAPI.csproj -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -o publish/employeeapi`
-  - Zip the folder `publish/employeeapi`.
-
-- Upload ZIP to S3 (Console only)
-  - Create a private bucket; upload the ZIP.
-  - Select the object > Actions > Create presigned URL, copy the URL.
-
-- Connect to instance (no local SSH required)
-  - EC2 > Instances > Select instance > Connect > EC2 Instance Connect > Connect.
-
-- On the instance (paste commands)
-  - `sudo dnf -y install nginx && sudo systemctl enable --now nginx`
-  - `cd ~ && curl -L "<YOUR_PRESIGNED_URL>" -o app.zip && unzip -o app.zip -d app`
-  - `cd ~/app && ASPNETCORE_URLS=http://0.0.0.0:8080 nohup ./EmployeeAPI > app.log 2>&1 &`
-  - `sudo tee /etc/nginx/conf.d/employee.conf > /dev/null <<'NGINX'
-server {
-    listen 80;
-    server_name longranch.com;
-    location /employee/ {
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        rewrite ^/employee/?(.*)$ /$1 break;
-        proxy_pass http://127.0.0.1:8080/;
-    }
-}
-NGINX
-sudo nginx -t && sudo systemctl reload nginx`
-
-- DNS
-  - Point `longranch.com` A record to the instance’s Elastic IP (or its current public IP).
-
-- Verify
-  - Open `http://longranch.com/employee/swagger` (or the EC2 public DNS + `/employee/swagger`).
-  - If Swagger redirects to HTTPS and fails, temporarily remove `app.UseHttpsRedirection()` in `apis/EmployeeAPI/Program.cs`, republish, and re‑upload.
-
-- Teardown (avoid costs)
-  - Delete A record, disassociate/release Elastic IP, terminate the instance, delete the S3 object/bucket.
-
-Later: add HTTPS (Let’s Encrypt), then a managed service (App Runner/ECS), and finally Harness/Terraform for repeatability.
-
----
-My notes:
-EC2 (Elastic Compute Cloud)	Raw virtual machines in the cloud — you manage the OS, patching, scaling, and deployments yourself. Think “AWS’s version of a server.”
-ECS (Elastic Container Service)	AWS’s container orchestration service. It runs Docker containers for you on a cluster of EC2 instances (or serverless using Fargate). You focus on containers, not OS.
-NGINX: is lightweight software that can: Serve static websites.
-VPC:	Virtual Private Cloud - Virtual network	Use default VPC
-SUBNET:	Network segment	Use public subnet
-IP:	Public access	Enable auto-assign public IP
-Internet Gateway:	Gives web access	Already attached to default VPC
- 
-Optional: avoid SSH entirely (Session Manager)
-- Create an IAM role with `AmazonSSMManagedInstanceCore`, attach it to the instance (EC2 → Actions → Security → Modify IAM role).
-- Then connect via: EC2 → Instances → Connect → Session Manager tab → Connect.
-- This works without opening port 22; only outbound internet from the subnet is needed.
-
-## Cleanup / Reset (UI only)
-
-- EC2 instance
-  - EC2 → Instances → select your instance → Instance state → Terminate instance → Confirm.
-
-- Elastic IP (if used)
-  - EC2 → Elastic IPs → select the EIP → Actions → Disassociate Elastic IP address → then Actions → Release Elastic IP address.
-
-- Security Group
-  - EC2 → Security Groups → select the SG you created → Delete. If deletion is blocked, ensure the instance is terminated and no ENIs reference it.
-
-- S3 artifact
-  - S3 → open the bucket → delete the uploaded ZIP object → then delete the bucket if you created it just for this test (Bucket → Empty → Delete bucket).
-
-- DNS record
-  - Route 53 (or your registrar) → Hosted zone for `longranch.com` → delete the A record you added.
-
-- VPC (only if you created a new one for this test)
-  - VPC → Your VPCs → select the test VPC → Actions → Delete VPC. The console will offer to remove dependent resources (subnets, route tables, IGW).
-  - Do NOT delete the region’s default VPC if you plan to use it later.
-
-- Key pair (optional)
-  - EC2 → Key pairs → delete the test key pair if you won’t reuse it.
-
-- IAM role (optional, if you created one for Session Manager)
-  - EC2 → select instance (if still present) → Actions → Security → Modify IAM role → detach.
-  - IAM → Roles → select the test role (e.g., with AmazonSSMManagedInstanceCore) → Delete role.
-
-Tip: make sure you’re in the same AWS region for all of the above. Once these are gone, you’re back to a clean slate to relaunch using the “Quick reset” recipe.
-## Alternative: Elastic Beanstalk (simplest managed, no SSH)
-
-- Why: fastest path to a public URL without touching VPC/SG beyond defaults.
-- Our publish script now adds a `Procfile` so Beanstalk can start the self-contained binary.
-
-Steps (Console-only)
-- Run your publish script to refresh the ZIP: `commands/publish-employeeapi.ps1`
-  - The ZIP is at `publish/employeeapi.zip` and includes `Procfile` and `EmployeeAPI` binary.
-- Elastic Beanstalk → Create application
+- Console → Elastic Beanstalk → Create application
   - Application name: `employeeapi`
-  - Platform: `.NET on Linux` (latest .NET 8 on Amazon Linux 2023)
-  - Environment: `Web server` → Environment type: `Single instance` (cheapest)
-  - Application code: `Upload your code` → choose `publish/employeeapi.zip`
-  - Leave defaults; Create environment.
-- Wait for status `Health: Ok` and note the URL like `http://<env>.elasticbeanstalk.com`
-- Verify: open `<env-url>/swagger`
-  - (The `/employee` path prefix can come later; for now just confirm Swagger loads.)
+  - Environment: `Web server`
+  - Platform: `.NET on Linux` (latest, AL2023/.NET 8)
+  - Environment type: `Single instance` (cheapest)
+  - Application code: Upload `publish/employeeapi.zip`
+  - Create environment and wait for Health: `Ok`
+- Verify: open the provided URL like `http://<env>.elasticbeanstalk.com/swagger`
 
-Cleanup
-- In Elastic Beanstalk: Actions → Terminate environment; then delete the application to remove all resources.
+Notes
+- If your publish produced `EmployeeAPI.dll` instead of a single binary, update Procfile to `web: dotnet EmployeeAPI.dll` and re‑zip.
+- If Swagger redirects to HTTPS and fails, temporarily remove `app.UseHttpsRedirection()` in `apis/EmployeeAPI/Program.cs`, republish, re‑upload.
+
+## Step 3 — Optional domain (later)
+
+- Quick win: use the Beanstalk URL for learning and move on.
+- When ready for a custom domain:
+  - Easiest: use a subdomain CNAME (e.g., `api.longranch.com` → EB CNAME).
+  - Path `/employee` requires a proxy or router (e.g., CloudFront or ALB path rules) and is best done later.
+
+## Cleanup / Cost control
+
+- Elastic Beanstalk: Actions → Terminate environment; then delete the application.
+- Remove any Route 53 records you added.
+
+## Next (when this is green)
+
+- Add HTTPS on Beanstalk.
+- Map `api.longranch.com` via CNAME.
+- If you specifically need `/employee`: add CloudFront or ALB path‑based routing.
+- Later switch to containers and Harness/Terraform for repeatable infra.
+
