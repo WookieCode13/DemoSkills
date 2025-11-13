@@ -25,7 +25,9 @@ builder.Services.AddSwaggerGen();
     var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+var enableSwagger = app.Environment.IsDevelopment() ||
+                    builder.Configuration.GetValue<bool>("EnableSwagger", false);
+if (enableSwagger)
 {
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -33,7 +35,7 @@ if (app.Environment.IsDevelopment())
 
     app.UseSerilogRequestLogging();
 
-    app.UseHttpsRedirection();
+    //app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
