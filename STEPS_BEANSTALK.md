@@ -2,6 +2,9 @@
 
 Goal: deploy EmployeeAPI quickly using Elastic Beanstalk, verify Swagger, and keep costs low. We’ll add domains and path routing later. Keep this simple and manual for learning.
 
+# UPDATE: 
+this worked, my site ran. but the no good way to tear down and redploy each day. Moving back to EC2 and ECS.
+
 ## Prerequisites
 
 - AWS account with console access
@@ -17,7 +20,7 @@ Goal: deploy EmployeeAPI quickly using Elastic Beanstalk, verify Swagger, and ke
 ## Step 2 — Create Elastic Beanstalk app (UI only)
 
 - Console → Elastic Beanstalk → Create application
-  - Application name: `employeeapi`
+  - Application name: ` `
   - Environment: `Web server`
   - Platform: `.NET on Linux` (latest, AL2023/.NET 8)
   - Environment type: `Single instance` (cheapest)
