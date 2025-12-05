@@ -2,12 +2,20 @@
 
 Main goal is to build a demo portfolio project that showcases my resume skills. The plan is to deploy several simple APIs, provide Swagger documentation, and eventually add a frontend. I will incorporate AWS services such as Lambda, SNS, SQS, and S3. The tech stack will include VS Code (C# and Python), GitHub, Harness, and Docker. For container orchestration, I will use ECS with Fargate instead of EKS to reduce costs. The project will be designed for easy deployment and teardown, making it ideal for interviews and demonstrations.
 
-## 🧩 Phase 1 — Setup
+## 🧩 Phase 0 — Setup
 
 - [x] Create project folder structure
 - [x] Add Markdown files (README, PLAN, AI_NOTES)
 - [x] Enable GitHub Copilot Chat in VS Code
 - [x] Initialize Git repository
+
+## 🧩 Phase 1 — AWS Setup
+
+- [x] Confirm default VPC/subnets/route table and demo security group (`demo-employeeapi-sg`)
+- [x] Create shared ECR repo (`demoskills`) with simple tag scheme and lifecycle policy
+- [x] Create shared execution role (`demoskillsapi-ecs-execution`) and placeholder task role
+- [x] Create ECS cluster (`demoskills-001-ecs`), log group (`/ecs/employeeapi`), and placeholder task/service
+- [ ] Create Tasks for pay, company and tax.
 
 ## ⚙️ Phase 2 — API Foundations
 

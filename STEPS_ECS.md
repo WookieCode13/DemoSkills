@@ -41,18 +41,23 @@ Note: using 1 repo with tags, again for a quick setup, if i have to tear down AW
 1. **ECR repository (single-repo strategy)**
    - Console > ECR > Repositories > Create repository.
    - Name: `demoskills` (one repo for all services). Private, scan-on-push enabled. Tag immutability optional (on is safer).
-   - Tag format example: `demoskills:employeeapi-<git-sha>`, `demoskills:taxapi-<git-sha>`.
+   - Tag format example (valid chars: letters/numbers/.\_- only): `employeeapi-latest` plus a stable tag like `employeeapi-abc123` (short git SHA) or `employeeapi-42` (build number). I used `-latest`. for all 4 apis i plan to deploy.
    - Optional lifecycle policy: expire untagged images; keep last N tags per prefix to save pennies.
 2. **IAM roles**
-   - Task execution role: IAM > Roles > Create role > AWS service > Elastic Container Service > Elastic Container Service Task.
+   - Task execution role (shared): IAM > Roles > Create role > AWS service > Elastic Container Service > (use case) Elastic Container Service Task.
      - Attach `AmazonECSTaskExecutionRolePolicy`.
-     - Name: `employeeapi-ecs-execution`.
-   - Task role (app permissions): create `employeeapi-task-role` now even if empty; add least-privilege access later (e.g., S3/DB).
+     - Name: `demoskillsapi-ecs-execution` (reuse for all services for simplicity).
+   - Task role (app permissions): create `demoskillsapi-task-role` now even if empty; add least-privilege access later (e.g., S3/DB). For simplicity you can reuse one later, but per-service roles are safer when you add permissions.
+     - IAM > Roles > Create role > AWS service > Elastic Container Service > (use case) Elastic Container Service Task.
+     - leave perms empty for now
+     - will reuse this role for now, simpler for the demo app than creating roles for every api and usage.
 3. **CloudWatch Logs**
-   - Create log group `/ecs/employeeapi` (Console > CloudWatch > Logs > Log groups > Create).
+   - Create log group `/ecs/employeeapi` (Console > CloudWatch > Logs > Log groups (at top column) > Create).
+   - taxcalculatorapi, payapi, companyapi
 4. **ECS cluster**
    - Console > ECS > Clusters > Create cluster.
-   - Name: `demo-ecs`. Networking only (no EC2 capacity providers), default VPC, pick two public subnets.
+   - Name: `demoskills-001-ecs`. (Fargate only). Networking only (no EC2 capacity providers), default VPC, pick two public subnets.
+   - note: i tried `demoskills-ecs`, failed first try. Not in list, but would not let me create, says existed. (still not in list)
 5. **Task definition**
    - Console > ECS > Task definitions > Create (FARGATE).
    - Task family: `employeeapi-task`; Runtime: Fargate; CPU/memory: 0.5 vCPU / 1 GB (adjust later).
@@ -62,114 +67,33 @@ Note: using 1 repo with tags, again for a quick setup, if i have to tear down AW
      - Image: placeholder `public.ecr.aws/amazonlinux/amazonlinux:latest` until Harness pushes real image. Ports: 8080 TCP.
      - Logs: awslogs, region = target region, group = `/ecs/employeeapi`, stream prefix = `employeeapi`.
 6. **Service (optional placeholder)**
-   - Console > ECS > Clusters > `demo-ecs` > Create service.
+   - Console > ECS > Clusters > `demoskills-001-ecs` > Create service.
    - Launch type: Fargate; Task definition: `employeeapi-task`; Service name: `employeeapi-svc`.
    - Desired count: 0 or 1 (set 0 if no real image yet).
-   - Networking: default VPC, two public subnets, assign public IP = ENABLED, security group = `demo-employeeapi-sg`.
+   - Networking: default VPC, pick two of the 6 default public subnets, assign public IP = ENABLED, security group = just `demo-employeeapi-sg`.
    - No load balancer for now; add ALB later when image is ready.
 7. **Ready for Harness**
-   - Capture: region, cluster `demo-ecs`, task family `employeeapi-task`, service `employeeapi-svc`, roles, log group, and ECR repo URL.
+   - Capture: region, cluster `demoskills-001-ecs`, task family `employeeapi-task`, service `employeeapi-svc`, roles, log group, and ECR repo URL.
    - Decide registry (ECR vs external). Harness will update the task definition image, set desired count, and add ALB later if needed.
 
-## old phases - keep for now as notes will delete later.
+## Phase 2 - Harness Pipelines (build/deploy/pause)
 
-## Phase 0 - Prerequisites & Decisions
+Goal: automate image build/push and ECS updates; keep costs down by pausing (desired count 0) when idle.
 
-1. **AWS accounts/roles**: confirm an AWS account with permissions to manage ECR, ECS, IAM, VPC, and Route 53. Decide on a primary region (us-east-1 unless a different one is already standard).
-2. **Networking**: reuse the default VPC + public subnets initially. Long term we can create dedicated subnets and security groups via IaC.
-3. **Container registry**: choose ECR for production and optionally Docker Hub/GitHub Container Registry for local experiments.
-4. **Harness access**: ensure Harness has connections set up for GitHub, Docker/ECR, and AWS (either an IAM user with access keys or a cross-account role).
-
-## Phase 1 - Harness Scaffolding (incremental)
-
-Goal: create minimal Harness plumbing, while keeping VPC setup manual (cheaper/faster than automating it). The API will be containerized and deployed in later phases.
-
-1. VPC handling (manual, console):
-   - Confirm a default VPC exists in the target region; if missing, click “Actions -> Create default VPC”.
-   - Verify at least two public subnets have auto-assign public IPv4 enabled.
-   - Create or reuse a simple SG (e.g., `employeeapi-quickstart-sg`) with HTTP/HTTPS inbound for demo use; tighten later.
-2. Registry step:
-   - Preferred: ECR repo (`employeeapi`) with lifecycle policy; create via Harness step (CLI/IaC).
-   - Alternative: external registry connector (GHCR/Docker Hub) if we want to avoid ECR storage.
-3. Build stage (Harness):
-   - Checkout -> login to registry -> `docker build` -> `docker push`; emit image tag/digest as output.
-4. Deploy stage (Harness):
-   - Create/update ECS cluster, task definition, and service (optionally ALB) referencing the pushed image.
-5. Teardown stage (Harness):
-   - Stop/delete ECS service (and ALB/target group if created).
-   - Delete ECR repo (if using ECR) or leave external registry untouched.
-   - Keep inexpensive/shared bits (VPC) unless we intentionally nuke everything.
-
-Immediate Harness actions:
-
-- Create/verify Harness project and service for EmployeeAPI.
-- Add connectors: GitHub (this repo), AWS (keys or role), and chosen registry (ECR or external).
-- Create a minimal pipeline skeleton with build + deploy + teardown stages (even if steps are placeholders).
-
-## Phase 2 - Dockerize the APIs
-
-1. For each API (start with `EmployeeAPI`):
-   - Add a `Dockerfile` targeting `linux-x64`, multi-stage (restore/build/publish + runtime stage).
-   - Include environment-variable driven config and expose port `8080` (or similar) consistently.
-   - Since Docker is not installed locally, rely on Harness (or another remote runner/Linux box) for `docker build`/`docker run` throughout CI, and keep helper scripts focused on publishing artifacts only.
-2. Create a root-level `docker/` folder with shared compose files and `.dockerignore` for future local Linux usage.
-3. Validation:
-   - **Remote path (default)**: Let Harness build/test the container in its build stage and surface logs in the pipeline.
-   - **Optional local Linux box**: When available, run `docker build`/`docker run -p 8080:8080 employeeapi:local` to test manually.
-4. Once stable, standardize tags: `demo/<service>:<git-sha>` for dev, `release-<version>` for prod.
-
-## Phase 3 - AWS Building Blocks
-
-1. **ECR repositories**: create `employeeapi` (and placeholders for future APIs). Enable scan-on-push.
-2. **IAM roles/policies**:
-   - Task execution role allowing `ecr:GetAuthorizationToken`, `logs:CreateLogStream`, etc.
-   - Task role for the API (least privilege, e.g., S3 or DB access later).
-3. **CloudWatch logs**: define log groups `/ecs/employeeapi`.
-4. **Security groups**:
-   - `employeeapi-alb-sg`: inbound 80/443 from `0.0.0.0/0`.
-   - `employeeapi-service-sg`: inbound from the ALB SG only.
-5. **Load balancer (optional initial)**: create an Application Load Balancer with HTTP listener -> target group (IP type) pointing at ECS tasks. Keep idle timeout low until HTTPS is added.
-
-## Phase 4 - ECS Fargate Configuration
-
-1. Create an ECS cluster `demo-ecs` (Fargate only).
-2. Define task definition `employeeapi-task`:
-   - Launch type `FARGATE`.
-   - CPU/memory `0.5 vCPU / 1 GB` (adjust later).
-   - Container referencing the ECR image, port mapping 8080, log configuration to CloudWatch.
-   - Environment variables for ASP.NET configs (ASPNETCORE_URLS, ConnectionStrings, etc.).
-3. Create service `employeeapi-svc`:
-   - Desired count 1 (cheap baseline), enable auto-scaling hooks for later.
-   - Attach to the ALB target group if using load balancing, otherwise assign a public IP via awsvpc.
-   - Place service in two public subnets (or private + NAT when ready).
-4. Verify deployment manually once to ensure logs flow and the health checks pass.
-
-## Phase 5 - Harness Pipeline
-
-1. **Build stage**:
-   - Trigger on `main` branch merges (and optionally feature branches).
-   - Steps: checkout, run tests, `docker build`, `docker tag`, `docker push` to ECR.
-   - Capture metadata (image digest, git SHA) as pipeline outputs.
-2. **Deploy stage**:
-   - Harness ECS Fargate module: reference the cluster, service, and task definition.
-   - Use variables for CPU/memory, desired count, and image tag.
-   - Add verification steps (Harness CV or manual approval) before prod.
-3. **Teardown flow**:
-   - Separate Harness pipeline or stage that scales the service to zero or deletes Stack (via Terraform/CloudFormation script) to keep costs down.
-4. **Secrets**: store AWS creds + Docker registry credentials in Harness secret manager.
-
-## Phase 6 - Automation & Future Enhancements
-
-1. Convert manual AWS setup into Terraform or CloudFormation under `infra/`.
-2. Expand pipelines to handle additional APIs (Python Company API, Tax Calculator API).
-3. Add automated smoke tests post-deploy (e.g., `pwsh commands/smoke-employeeapi.ps1` called from Harness).
-4. Integrate Route 53 and ACM for HTTPS once ALB is in place.
-5. Implement ECS Service Auto Scaling policies once load testing begins.
-
-## Daily Routine
-
-1. Developer pushes code -> Harness builds/pushes image -> ECS deploys automatically to dev.
-2. For demo resets, run the teardown pipeline (delete service or entire stack) and re-run the deploy pipeline when needed.
-3. Monitor CloudWatch logs and Harness execution logs to diagnose issues quickly.
-
-This document replaces the EC2/Beanstalk step logs. Refer to `STEPS_EC2_old.md` and `STEPS_BEANSTALK_old.md` for historical notes.
+1. **Connectors/secrets**
+   - Git connector for this repo.
+   - AWS connector for ECR/ECS (keys or role).
+   - Registry login (ECR) using the same AWS connector.
+2. **Build stage**
+   - Steps: checkout -> `aws ecr get-login-password | docker login` -> `docker build -f docker/services/EmployeeAPI.Dockerfile -t <repo>/demoskills:employeeapi-latest .` -> push `employeeapi-latest` and a stable tag (e.g., `employeeapi-<build>`).
+   - Output the chosen image tag for deploy (e.g., `IMAGE_TAG` variable).
+3. **Deploy stage**
+   - Update task definition image to `<repo>/demoskills:<IMAGE_TAG>`; use execution role `demoskillsapi-ecs-execution` and task role `demoskillsapi-task-role`.
+   - Update service `employeeapi-svc` on cluster `demoskills-001-ecs` and scale desired count to 1.
+   - Networking: default VPC, two public subnets, SG `demo-employeeapi-sg`. No ALB initially.
+4. **Pause/teardown stage**
+   - Scale service desired count to 0.
+   - Optional: clean old images per lifecycle policy; do not delete repo/cluster.
+5. **Notes**
+   - If you later add an ALB, include health check grace period and SG rules (ALB SG 80/443; service SG allows from ALB SG).
+   - Even if you default to `employeeapi-latest`, keep a stable tag for rollback (`employeeapi-<seq>`).
