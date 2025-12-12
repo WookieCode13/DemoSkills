@@ -88,22 +88,20 @@ Goal: set up the Harness project, delegate, connectors, and validate ECR/ECS acc
 2. Git connector (repo source)
    - Project Settings > Connectors; type Git (HTTP).
    - Use PAT with `repo` scope stored as a Harness secret (e.g., `github_pat_demoskills`).
-   - ~~Assign the docker delegate and run the test after the delegate is healthy.~~
-   - use platform not delgate, paid for free, 2000 free credits for cloud usage
+   - Assign the docker delegate and run the test after the delegate is healthy.
 3. AWS connector (ECR + ECS access)
    - Scope: project (or account if reused). Type: AWS with Access Key/Secret.
    - IAM user (example `harness-demoskills`): programmatic access only. For now attach `AmazonECS_FullAccess` and `AmazonEC2ContainerRegistryFullAccess` (tighten later).
    - Store key/secret as Harness secrets (e.g., `aws_demoskills_creds`), set backoff (fixed 5s, 3 retries), and bind to the docker delegate.
-   - use platform not delgate, paid for free, 2000 free credits for cloud usage
    - Minimum perms for production hardening:
      - ECR push: `ecr:GetAuthorizationToken`, `ecr:BatchCheckLayerAvailability`, `ecr:InitiateLayerUpload`, `ecr:UploadLayerPart`, `ecr:CompleteLayerUpload`, `ecr:PutImage`, `ecr:DescribeRepositories` (+ `ecr:CreateRepository` if pipelines create repos).
      - ECS deploy: `ecs:Describe*`, `ecs:RegisterTaskDefinition`, `ecs:UpdateService`, `ecs:ListClusters`, `ecs:ListServices`.
      - iam:PassRole for `demoskillsapi-ecs-execution` and `demoskillsapi-task-role`.
      - CloudWatch Logs (if Harness may create streams): `logs:CreateLogGroup`, `logs:CreateLogStream`, `logs:PutLogEvents`.
 4. ECR registry connector (prep for builds)
-   - Type: AWS ECR (Docker Registry). If you do not see the AWS-connector option (only “Other” shows), it’s usually a scope mismatch; try recreating the AWS connector at the same scope (project) and retry. If still unavailable, skip the registry connector and rely on the CLI login in the build stage.
-   - If you must use “Other,” set Registry URL: `https://<account>.dkr.ecr.<region>.amazonaws.com/demoskills`, delegate = docker delegate, and leave auth anonymous (the build stage docker login supplies auth).
-   - Run the connectivity test on the docker delegate if the UI allows; if private networking, ensure NAT/VPC endpoints reach ECR.
+   - Type: AWS ECR (Docker Registry); reuse the AWS connector above.
+   - Registry URL: `<account>.dkr.ecr.<region>.amazonaws.com/demoskills`.
+   - Run the connectivity test on the docker delegate; if private networking, ensure NAT/VPC endpoints reach ECR.
 5. Secrets and naming
    - Keep predictable secret names (`github_pat_demoskills`, `aws_demoskills_creds`) and reference them in connectors.
 6. Quick validation (delegate shell or Harness tests)
@@ -121,13 +119,12 @@ Goal: automate image build/push and ECS updates; keep costs down by pausing (des
 1. **Connectors/secrets**
    - Ensure Phase 2 connectors exist: Git first (repo PAT), then AWS (ECR/ECS + iam:PassRole), and ECR registry using the AWS connector. Secrets stored in Harness.
 2. **Build stage**
-   - Stage type: CI (Build); infrastructure: docker delegate on the Linux box.
-   - 2.1 Checkout: use the Git connector; shallow clone ok.
-   - 2.2 ECR login: `aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <account>.dkr.ecr.<region>.amazonaws.com`.
-   - 2.3 Build: `docker build -f docker/services/EmployeeAPI.Dockerfile -t <account>.dkr.ecr.<region>.amazonaws.com/demoskills:employeeapi-latest .`
-   - 2.4 Tag rollout: `TAG=employeeapi-${HARNESS_BUILD_ID:-$HARNESS_BUILD_NUMBER}` then `docker tag <account>.dkr.ecr.<region>.amazonaws.com/demoskills:employeeapi-latest <account>.dkr.ecr.<region>.amazonaws.com/demoskills:$TAG` (or use short git SHA if preferred).
-   - 2.5 Push: `docker push <account>.dkr.ecr.<region>.amazonaws.com/demoskills:employeeapi-latest` and `docker push <account>.dkr.ecr.<region>.amazonaws.com/demoskills:$TAG`.
-   - 2.6 Export tag: `echo \"IMAGE_TAG=$TAG\" >> $HARNESS_ENV_EXPORTS` (or set an output variable) for the deploy stage to consume.
+   - 2.1 Checkout: use the Git connector to pull the repo; shallow clone ok.
+   - 2.2 Login to ECR: `aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <account>.dkr.ecr.<region>.amazonaws.com`.
+   - 2.3 Build image: `docker build -f docker/services/EmployeeAPI.Dockerfile -t <account>.dkr.ecr.<region>.amazonaws.com/demoskills:employeeapi-latest .`
+   - 2.4 Tag stable: add a rollout tag `employeeapi-<build>` (build number or short SHA) for rollback.
+   - 2.5 Push images: push `employeeapi-latest` and the stable tag.
+   - 2.6 Export tag: set output variable `IMAGE_TAG` to the chosen deploy tag (e.g., `employeeapi-<build>`). Use this in deploy stage.
 
 3. **Deploy stage**
    - Update task definition image to `<repo>/demoskills:<IMAGE_TAG>`; use execution role `demoskillsapi-ecs-execution` and task role `demoskillsapi-task-role`.
