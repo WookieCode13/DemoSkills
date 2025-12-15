@@ -1,0 +1,217 @@
+# YAML pipeline definition for building and pushing Docker images using Harness Cloud CI
+# The multi-stage approach but with local delegate using docker runtime instead of cloud CI.
+# TBD speed and efficiency comparison with single stage CI pipeline.
+pipeline:
+  identifier: DS_Build_w_Cloud_2
+  name: DS - Build w Cloud
+  projectIdentifier: demo_skills_project
+  orgIdentifier: default
+  description: "A pipeline that will use the Harness cloud CI. "
+  tags: {}
+
+  properties:
+    ci:
+      codebase:
+        connectorRef: git_proj_demoskills
+        build: <+input>
+
+  variables:
+    - name: SERVICE_NAME
+      type: String
+      value: <+input>.allowedValues(EmployeeAPI,CompanyAPI,TaxCalculatorAPI,PayAPI)
+      description: Choose the API to build.
+    - name: BUILD_TYPE
+      type: String
+      value: <+input>.allowedValues(CS,PY)
+      default: CS
+      description: Choose C-Csharp(CS) or Python(PY) builder.
+
+  stages:
+    # -------------------- STAGE 1: SETUP (generate tag) --------------------
+    - stage:
+        name: setup
+        identifier: setup
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Generate Image Name
+                  identifier: GENERATE_IMAGE_NAME
+                  spec:
+                    shell: Sh
+                    outputVariables:
+                      - name: IMAGE_TAG
+                    command: |
+                      SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
+                      GIT_TAG="<+codebase.gitTag>"
+                      BRANCH="<+codebase.branch>"
+
+                      if [ -z "$GIT_TAG" ] || [ "$GIT_TAG" = "null" ] || [ "$GIT_TAG" = "'null'" ]; then
+                        GIT_TAG="branch"
+                      fi
+
+                      if [ -z "$BRANCH" ] || [ "$BRANCH" = "null" ] || [ "$BRANCH" = "'null'" ]; then
+                        CLEAN_BRANCH="release"
+                      else
+                        SAFE_BRANCH=$(echo "$BRANCH" | tr '/' '-')
+                        CLEAN_BRANCH=$(echo "$SAFE_BRANCH" | sed 's/^feature-//')
+                      fi
+
+                      IMAGE_TAG="${SERVICE_NAME}-${CLEAN_BRANCH}.${GIT_TAG}.b<+pipeline.sequenceId>"
+
+                      echo "Generated IMAGE_TAG: $IMAGE_TAG"
+                      echo "IMAGE_TAG_FOR_COPY=$IMAGE_TAG"
+
+                      export IMAGE_TAG="$IMAGE_TAG"
+
+    # -------------------- STAGE 2: BUILD & TEST (CS / PY) --------------------
+    - stage:
+        name: build-and-test
+        identifier: build_and_test
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: build-and-test-cs
+                  identifier: Build_Test_CS
+                  when:
+                    stageStatus: Success
+                    condition: <+pipeline.variables.BUILD_TYPE> == "CS"
+                  spec:
+                    shell: Sh
+                    image: mcr.microsoft.com/dotnet/sdk:8.0
+                    command: |
+                      SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
+                      cd "apis/${SERVICE_NAME}"
+                      dotnet restore
+                      dotnet build --configuration Release
+                      dotnet test
+
+              - step:
+                  type: Run
+                  name: build-and-test-python
+                  identifier: Build_Test_PY
+                  when:
+                    stageStatus: Success
+                    condition: <+pipeline.variables.BUILD_TYPE> == "PY"
+                  spec:
+                    shell: Sh
+                    command: |
+                      SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
+                      cd "apis/${SERVICE_NAME}"
+                      python -m venv .venv
+                      . .venv/bin/activate
+                      pip install -r requirements.txt
+                      pytest
+
+    # -------------------- STAGE 3: DOCKER BUILD & PUSH --------------------
+    - stage:
+        name: docker-build-and-push
+        identifier: docker_build_and_push
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: aws-docker-login-step
+                  identifier: dsecrloginstep
+                  spec:
+                    shell: Sh
+                    command: |-
+                      echo "Logging into ECR..."
+
+                      aws ecr get-login-password --region $AWS_REGION \
+                        | docker login \
+                              --username AWS \
+                              --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+                    envVariables:
+                      AWS_ACCOUNT_ID: <+secrets.getValue("proj-ds-aws-account-id")>
+                      AWS_ACCESS_KEY_ID: <+secrets.getValue("proj-ds-aws-access-key-id")>
+                      AWS_SECRET_ACCESS_KEY: <+secrets.getValue("proj-ds-aws-secret-access-key")>
+                      AWS_REGION: <+secrets.getValue("proj-ds-aws-region")>
+
+              - step:
+                  type: Run
+                  name: build-and-push-image
+                  identifier: Build_And_Push_Image
+                  spec:
+                    shell: Sh
+                    command: |-
+                      set -e
+
+                      SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
+                      IMAGE_TAG="<+pipeline.stages.setup.spec.execution.steps.GENERATE_IMAGE_NAME.output.outputVariables.IMAGE_TAG>"
+
+                      echo "Building Docker image demo-image:$IMAGE_TAG"
+
+                      docker build \
+                        -t demo-image:$IMAGE_TAG \
+                        -f apis/$SERVICE_NAME/Dockerfile \
+                        apis/$SERVICE_NAME
+
+                      IMAGE_LOCAL="demo-image:$IMAGE_TAG"
+                      ECR_REPO="demoskills"
+                      FULL_TAG="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG"
+
+                      echo "Tagging image..."
+                      docker tag "$IMAGE_LOCAL" "$FULL_TAG"
+
+                      echo "Pushing image to ECR..."
+                      docker push "$FULL_TAG"
+
+                      echo "Pushed image:"
+                      echo "  $FULL_TAG"
+                    envVariables:
+                      AWS_ACCOUNT_ID: <+secrets.getValue("proj-ds-aws-account-id")>
+                      AWS_REGION: <+secrets.getValue("proj-ds-aws-region")>
+
+    # -------------------- STAGE 4: POST (optional) --------------------
+    - stage:
+        name: post
+        identifier: post
+        type: CI
+        spec:
+          cloneCodebase: false
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: log-image-tag
+                  identifier: Log_Image_Tag
+                  spec:
+                    shell: Sh
+                    command: |-
+                      IMAGE_TAG="<+pipeline.stages.setup.spec.execution.steps.GENERATE_IMAGE_NAME.output.outputVariables.IMAGE_TAG>"
+                      echo "Final IMAGE_TAG (for deploy or copy): $IMAGE_TAG"

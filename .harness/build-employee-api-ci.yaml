@@ -1,0 +1,198 @@
+# Single stage CI pipeline to build Employee APIs and push Docker images to AWS ECR, successful and lower cost.
+# But there is still the 1 min delay at infrstructure provisioning step in Harness Cloud CI.
+# So next step is to try multi-stage pipeline with local delegate using docker runtime to eliminate delay
+pipeline:
+  name: test-openai-yaml
+  identifier: testopenaiyaml
+  projectIdentifier: demo_skills_project
+  orgIdentifier: default
+  tags: {}
+  properties:
+    ci:
+      codebase:
+        connectorRef: git_proj_demoskills
+        build: <+input>
+  variables:
+    - name: SERVICE_NAME
+      type: String
+      value: <+input>.allowedValues(EmployeeAPI,CompanyAPI,TaxCalculatorAPI,PayAPI)
+      description: Choose the API to build.
+    - name: BUILD_TYPE
+      type: String
+      value: <+input>.allowedValues(CS,PY)
+      default: CS
+      description: Choose C-Csharp(CS) or Python(PY) builder.
+  stages:
+    #  !!  this worked - for monday, so i don;t forget  !!
+    # lets checkin and merge PR to main, tired of long branch name for build., mayube tag it
+    # wporking on spliting thisinto multiple stages/steps
+    #   --  currently chat is working on yasml for stages/steps
+    # then mayube switch some steps into delegates if needed ( compare credit cost between cloud and delegate and multi stages)
+    # then we will get onto to deploying.
+    # then maybe deploy to linux local
+    - stage:
+        name: build-ecr-image
+        identifier: builddsstage
+        description: ""
+        type: CI
+        spec:
+          cloneCodebase: true
+          caching:
+            enabled: true
+            override: false
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Generate Image Name
+                  identifier: GENERATE_IMAGE_NAME
+                  spec:
+                    shell: Sh
+                    outputVariables:
+                      - name: IMAGE_TAG
+                    command: |
+                      SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
+                      GIT_TAG="<+codebase.gitTag>"
+                      BRANCH="<+codebase.branch>"
+
+                      # Normalize git tag
+                      if [ -z "$GIT_TAG" ] || [ "$GIT_TAG" = "null" ] || [ "$GIT_TAG" = "'null'" ]; then
+                        GIT_TAG="branch"
+                      fi
+
+                      # Normalize branch
+                      if [ -z "$BRANCH" ] || [ "$BRANCH" = "null" ] || [ "$BRANCH" = "'null'" ]; then
+                        CLEAN_BRANCH="release"
+                      else
+                        SAFE_BRANCH=$(echo "$BRANCH" | tr '/' '-')
+                        CLEAN_BRANCH=$(echo "$SAFE_BRANCH" | sed 's/^feature-//')
+                      fi
+
+                      IMAGE_NAME="${SERVICE_NAME}-${CLEAN_BRANCH}.${GIT_TAG}.b<+pipeline.sequenceId>"
+
+                      echo "Generated version image name: $IMAGE_NAME"
+
+                      export IMAGE_TAG="$IMAGE_NAME"
+                      # not weorking - echo "IMAGE_TAG=$IMAGE_NAME" >> "$HARNESS_ENV_EXPORTS"
+              - step:
+                  type: Run
+                  name: build-and-test-cs
+                  identifier: Build_Test_CS
+                  when:
+                    stageStatus: Success
+                    condition: <+pipeline.variables.BUILD_TYPE> == "CS"
+                  spec:
+                    shell: Sh
+                    image: mcr.microsoft.com/dotnet/sdk:8.0
+                    command: |
+                      SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
+                      IMAGE_TAG="<+steps.GENERATE_IMAGE_NAME.output.outputVariables.IMAGE_TAG>"
+
+                      cd "apis/${SERVICE_NAME}"
+                      dotnet restore
+                      dotnet build --configuration Release
+                      dotnet test
+
+                      echo "image name: $IMAGE_TAG"
+              - step:
+                  type: Run
+                  name: build-and-test-python
+                  identifier: Build_Test_PY
+                  when:
+                    stageStatus: Success
+                    condition: <+pipeline.variables.BUILD_TYPE> == "PY"
+                  spec:
+                    shell: Sh
+                    command: |
+                      SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
+
+                      cd "apis/${SERVICE_NAME}"
+                      python -m venv .venv
+                      . .venv/bin/activate
+                      pip install -r requirements.txt
+                      pytest
+              - step:
+                  type: Run
+                  name: build-docker-image
+                  identifier: builddsdockerimage
+                  spec:
+                    shell: Sh
+                    command: |-
+                      SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
+                      IMAGE_TAG="<+steps.GENERATE_IMAGE_NAME.output.outputVariables.IMAGE_TAG>"
+
+                      echo "Building Docker image demo-image:$IMAGE_TAG"
+
+                      docker build \
+                        -t demo-image:$IMAGE_TAG \
+                        -f apis/$SERVICE_NAME/Dockerfile \
+                        apis/$SERVICE_NAME
+
+                      echo "image name: $IMAGE_TAG"
+              - step:
+                  type: Run
+                  name: aws-docker-login-step
+                  identifier: dsecrloginstep
+                  spec:
+                    shell: Sh
+                    command: |-
+                      echo "Logging into ECR..."
+
+                      aws ecr get-login-password --region $AWS_REGION \
+                        | docker login \
+                              --username AWS \
+                              --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+                    privileged: false
+                    envVariables:
+                      AWS_ACCOUNT_ID: <+secrets.getValue("proj-ds-aws-account-id")>
+                      AWS_ACCESS_KEY_ID: <+secrets.getValue("proj-ds-aws-access-key-id")>
+                      AWS_SECRET_ACCESS_KEY: <+secrets.getValue("proj-ds-aws-secret-access-key")>
+                      AWS_REGION: <+secrets.getValue("proj-ds-aws-region")>
+              - step:
+                  type: Run
+                  name: aws-ecr-push-image
+                  identifier: dsawsecrpushimage
+                  spec:
+                    shell: Sh
+                    command: |-
+                      set -e
+
+                      IMAGE_TAG="<+steps.GENERATE_IMAGE_NAME.output.outputVariables.IMAGE_TAG>"
+
+                      echo "Pushing $IMAGE_TAG to ECR..."
+
+                      IMAGE_LOCAL="demo-image:$IMAGE_TAG"
+                      ECR_REPO="demoskills"
+                      FULL_TAG="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG"
+
+                      echo "Tagging image..."
+                      docker tag "$IMAGE_LOCAL" "$FULL_TAG"
+
+                      echo "Pushing image to ECR..."
+                      docker push "$FULL_TAG"
+
+                      echo "Pushed image:"
+                      echo "  $FULL_TAG"
+                    envVariables:
+                      AWS_ACCOUNT_ID: <+secrets.getValue("proj-ds-aws-account-id")>
+                      AWS_REGION: <+secrets.getValue("proj-ds-aws-region")>
+              - step:
+                  type: Run
+                  name: export-image-tag
+                  identifier: exportimagetag
+                  spec:
+                    shell: Sh
+                    outputVariables:
+                      - name: IMAGE_TAG
+                    command: |-
+                      IMAGE_TAG="<+steps.GENERATE_IMAGE_NAME.output.outputVariables.IMAGE_TAG>"
+                      echo "IMAGE_TAG=$IMAGE_TAG"
+                      if [ -n "$HARNESS_ENV_EXPORTS" ]; then
+                        echo "IMAGE_TAG=$IMAGE_TAG" >> "$HARNESS_ENV_EXPORTS"
+                      fi

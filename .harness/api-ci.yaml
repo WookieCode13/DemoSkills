@@ -1,3 +1,5 @@
+# this was created by openai, nevere used or tested
+# keeping for now, want to eventually try the - type: BuildAndPushECR
 pipeline:
   name: employee-api-ci
   identifier: employee_api_ci
