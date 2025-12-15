@@ -22,10 +22,19 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+    // Optional: serve the app under a sub-path (e.g., "/employee")
+    var pathBase = builder.Configuration["PathBase"];
+    if (!string.IsNullOrWhiteSpace(pathBase) && !pathBase.StartsWith("/"))
+    {
+        pathBase = "/" + pathBase;
+    }
+
     var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Enable Swagger based on config or environment
+var enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger", false) || app.Environment.IsDevelopment();
+if (enableSwagger)
 {
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -33,9 +42,17 @@ if (app.Environment.IsDevelopment())
 
     app.UseSerilogRequestLogging();
 
-    app.UseHttpsRedirection();
+    // Apply PathBase early so Swagger and routes respect it
+    if (!string.IsNullOrWhiteSpace(pathBase))
+    {
+        app.UsePathBase(pathBase);
+    }
+
+    //app.UseHttpsRedirection();
 
 app.UseAuthorization();
+
+    // Note: No root ("/") or top-level "/health" endpoints
 
     app.MapControllers();
 
