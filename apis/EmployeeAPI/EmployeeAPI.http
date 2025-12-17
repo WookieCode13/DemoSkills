@@ -1,6 +1,6 @@
 @EmployeeAPI_HostAddress = http://localhost:5016
 # If using VS Code REST Client environments, you can instead set
-# `employeeApiBase` in `.vscode/rest-client.env.json` and comment the line above.
+# `employeeApiBase` in `rest-client.env.json` and comment the line above.
 # @EmployeeAPI_HostAddress = {{employeeApiBase}}
 
 ### Health check
@@ -9,16 +9,3 @@ Accept: application/json
 
 ### Swagger UI (HTML)
 GET {{EmployeeAPI_HostAddress}}/swagger
-
-### 8080 is blocked on longranch.com
-GET http://longranch.com:8080/api/v1/employees/health
-###
-GET http://longranch.com:80/api/v1/employees/health
-###
-GET http://longranch.com/api/v1/employees/health
-
-###
-GET http://demoskills-alb-1952058927.us-east-1.elb.amazonaws.com/api/v1/employees/health
-
-###
-GET http://demoskills-alb-1952058927.us-east-1.elb.amazonaws.com/swagger/index.html

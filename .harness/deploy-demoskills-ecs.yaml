@@ -40,6 +40,10 @@ pipeline:
       type: String
       value: ""
       description: Optional explicit container name in the task def (default is <service>).
+    - name: CONTAINER_PORT_OVERRIDE
+      type: Number
+      value: ""
+      description: Optional override for container port mapping (e.g., 8081 for CompanyAPI).
 
   stages:
     - stage:
@@ -81,6 +85,7 @@ pipeline:
                       IMAGE_TAG="<+pipeline.variables.IMAGE_TAG>"
                       CLUSTER="<+pipeline.variables.ECS_CLUSTER>"
                       DESIRED_COUNT_RAW="<+pipeline.variables.DESIRED_COUNT>"
+                      CONTAINER_PORT_RAW="<+pipeline.variables.CONTAINER_PORT_OVERRIDE>"
                       ECR_REPO="demoskills"
 
                       # Derive names, allow overrides if your ECS objects differ.
@@ -119,6 +124,11 @@ pipeline:
 
                       echo "Desired count: $DESIRED_COUNT"
 
+                      CONTAINER_PORT="${CONTAINER_PORT_RAW%.*}"
+                      if [ -n "${CONTAINER_PORT:-}" ]; then
+                        echo "Container port override: $CONTAINER_PORT"
+                      fi
+
                       CURRENT_TASK_DEF_ARN=$(
                         aws ecs describe-services \
                           --cluster "$CLUSTER" \
@@ -137,13 +147,31 @@ pipeline:
                         --query 'taskDefinition' > /tmp/taskdef.json
 
                       # Remove read-only fields and swap the image for the target container.
-                      jq \
+                      if [ -n "${CONTAINER_PORT:-}" ]; then
+                        jq \
+                          --arg image "$IMAGE" \
+                          --arg container "$CONTAINER_NAME" \
+                          --argjson port "$CONTAINER_PORT" \
+                          'del(.status, .revision, .taskDefinitionArn, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy, .tags)
+                            | .family = "'$ECS_TASK_FAMILY'"
+                            | .containerDefinitions = [
+                                .containerDefinitions[]
+                                | if .name == $container
+                                  then (.image = $image
+                                        | (if (.portMappings | type) == "array" then .portMappings = [ .portMappings[] | .containerPort = $port ] else . end))
+                                  else .
+                                  end
+                              ]' \
+                          /tmp/taskdef.json > /tmp/new-taskdef.json
+                      else
+                        jq \
                         --arg image "$IMAGE" \
                         --arg container "$CONTAINER_NAME" \
                         'del(.status, .revision, .taskDefinitionArn, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy, .tags)
                           | .family = "'$ECS_TASK_FAMILY'"
                           | .containerDefinitions = [ .containerDefinitions[] | if .name == $container then .image = $image else . end ]' \
                         /tmp/taskdef.json > /tmp/new-taskdef.json
+                      fi
 
                       NEW_TASK_DEF_ARN=$(
                         aws ecs register-task-definition \

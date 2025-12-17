@@ -121,13 +121,12 @@ pipeline:
                     condition: <+pipeline.variables.BUILD_TYPE> == "PY"
                   spec:
                     shell: Sh
+                    image: python:3.12-slim
                     command: |
                       SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
                       cd "apis/${SERVICE_NAME}"
-                      python -m venv .venv
-                      . .venv/bin/activate
-                      pip install -r requirements.txt
-                      pytest
+                      python -m pip install --no-cache-dir -r requirements.txt
+                      python -m pytest
 
     # -------------------- STAGE 3: DOCKER BUILD & PUSH --------------------
     - stage:
