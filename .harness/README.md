@@ -9,5 +9,4 @@ Before running in Harness, replace placeholders:
 
 Then run the pipeline in Harness to build/test and push to ECR.
 
-Tip: if you don’t have ECR yet, create it with `infra/terraform/ecr/apply.ps1` or point the pipeline to Docker Hub for a first pass.
-
+Tip: if you don't have ECR yet, create it in the AWS console (ECR > Create repository) or point the pipeline to Docker Hub for a first pass.

@@ -1,0 +1,13 @@
+{
+  "folders": [
+    { "path": "apis/CompanyAPI" }
+  ],
+  "settings": {
+    "python.defaultInterpreterPath": "${workspaceFolder}/apis/CompanyAPI/.venv/Scripts/python",
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [
+      "tests"
+    ]
+  }
+}
+

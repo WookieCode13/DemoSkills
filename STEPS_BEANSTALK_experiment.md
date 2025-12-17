@@ -49,5 +49,4 @@ Notes
 - Add HTTPS on Beanstalk.
 - Map `api.longranch.com` via CNAME.
 - If you specifically need `/employee`: add CloudFront or ALB path‑based routing.
-- Later switch to containers and Harness/Terraform for repeatable infra.
-
+- Later switch to containers and Harness (IaC optional) for repeatable infra.

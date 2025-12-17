@@ -45,14 +45,12 @@ DemoSkills/
 │   ├── /api-base/     # Base images
 │   └── /services/     # Service-specific
 │
-├── /harness/          # CI/CD Configuration
+├── /harness/          # (Optional) CI/CD Configuration
 │   ├── /pipelines/
 │   ├── /connectors/
 │   └── /templates/
 │
-└── /infrastructure/   # IaC and AWS Config
-    ├── /aws/
-    └── /terraform/
+└── /infra/            # (Optional) infrastructure notes/scripts
 
 ## Component Details
 

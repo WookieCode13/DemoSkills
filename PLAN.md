@@ -21,7 +21,7 @@ Main goal is to build a demo portfolio project that showcases my resume skills. 
 ## ⚙️ Phase 2 — API Foundations
 
 - [x] Create C# Employee API project
-- [ ] Create Python Company API project
+- [x] Create Python Company API project
 - [ ] Create C# Tax Calculator API project
 - [ ] Add Swagger / OpenAPI documentation
 - [ ] Add sample endpoints and tests
