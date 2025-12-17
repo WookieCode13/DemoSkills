@@ -1,0 +1,166 @@
+# CI-style deploy pipeline to roll out ECR images to ECS using the docker delegate.
+# Assumes:
+# - ECR repo: demoskills
+# - ECS cluster: demoskills-001-ecs
+# - Service/task/container names follow the pattern "<service>-svc", "<service>-task", "<service>"
+#   with service lower-cased (override via the *_OVERRIDE vars if different).
+pipeline:
+  name: DS - Deploy to ECS Delegate
+  identifier: DS_Deploy_to_ECS_Delegate
+  projectIdentifier: demo_skills_project
+  orgIdentifier: default
+  tags: {}
+
+  variables:
+    - name: SERVICE_NAME
+      type: String
+      value: <+input>.allowedValues(EmployeeAPI,CompanyAPI,TaxCalculatorAPI,PayAPI)
+      description: API to deploy.
+    - name: IMAGE_TAG
+      type: String
+      value: <+input>
+      description: Tag produced by the demoskills build pipeline.
+    - name: ECS_CLUSTER
+      type: String
+      value: demoskills-001-ecs
+      description: Target ECS cluster.
+    - name: DESIRED_COUNT
+      type: Number
+      value: 1
+      description: Desired task count after deploy.
+    - name: ECS_SERVICE_OVERRIDE
+      type: String
+      value: ""
+      description: Optional explicit ECS service name (default is <service>-svc).
+    - name: ECS_TASK_FAMILY_OVERRIDE
+      type: String
+      value: ""
+      description: Optional explicit task family (default is <service>-task).
+    - name: CONTAINER_NAME_OVERRIDE
+      type: String
+      value: ""
+      description: Optional explicit container name in the task def (default is <service>).
+
+  stages:
+    - stage:
+        name: deploy-to-ecs
+        identifier: deploy_to_ecs
+        type: CI
+        delegateSelectors:
+          - harness-docker-delegate-demoskills
+        spec:
+          cloneCodebase: false
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Docker
+            spec:
+              connectorRef: account.harnessImage
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Deploy Image to ECS
+                  identifier: deploy_image_to_ecs
+                  spec:
+                    shell: Sh
+                    image: amazon/aws-cli:2.23.4
+                    envVariables:
+                      AWS_ACCOUNT_ID: <+secrets.getValue("proj-ds-aws-account-id")>
+                      AWS_ACCESS_KEY_ID: <+secrets.getValue("proj-ds-aws-access-key-id")>
+                      AWS_SECRET_ACCESS_KEY: <+secrets.getValue("proj-ds-aws-secret-access-key")>
+                      AWS_REGION: <+secrets.getValue("proj-ds-aws-region")>
+                    command: |-
+                      set -euo pipefail
+
+                      # Install jq for task definition mutation.
+                      yum install -y jq >/dev/null
+
+                      SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
+                      IMAGE_TAG="<+pipeline.variables.IMAGE_TAG>"
+                      CLUSTER="<+pipeline.variables.ECS_CLUSTER>"
+                      DESIRED_COUNT_RAW="<+pipeline.variables.DESIRED_COUNT>"
+                      ECR_REPO="demoskills"
+
+                      # Derive names, allow overrides if your ECS objects differ.
+                      SERVICE_KEY=$(echo "$SERVICE_NAME" | tr '[:upper:]' '[:lower:]')
+                      ECS_SERVICE="<+pipeline.variables.ECS_SERVICE_OVERRIDE>"
+                      ECS_TASK_FAMILY="<+pipeline.variables.ECS_TASK_FAMILY_OVERRIDE>"
+                      CONTAINER_NAME="<+pipeline.variables.CONTAINER_NAME_OVERRIDE>"
+
+                      # Default service names; adjust for existing AWS service naming.
+                      if [ -z "$ECS_SERVICE" ]; then
+                        if [ "$SERVICE_NAME" = "EmployeeAPI" ]; then
+                          ECS_SERVICE="employeeapi-task-service-yvb10k9p"
+                        else
+                          ECS_SERVICE="${SERVICE_KEY}-svc"
+                        fi
+                      fi
+                      if [ -z "$ECS_TASK_FAMILY" ]; then
+                        ECS_TASK_FAMILY="${SERVICE_KEY}-task"
+                      fi
+                      if [ -z "$CONTAINER_NAME" ]; then
+                        CONTAINER_NAME="${SERVICE_KEY}"
+                      fi
+
+                      IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG"
+
+                      echo "Deploying $IMAGE"
+                      echo "Cluster: $CLUSTER"
+                      echo "Service: $ECS_SERVICE"
+                      echo "Task family: $ECS_TASK_FAMILY"
+                      echo "Container: $CONTAINER_NAME"
+                      # Coerce desired count to integer (Harness may send "1.0" for Number fields).
+                      DESIRED_COUNT="${DESIRED_COUNT_RAW%.*}"
+                      if [ -z "$DESIRED_COUNT" ]; then
+                        DESIRED_COUNT=1
+                      fi
+
+                      echo "Desired count: $DESIRED_COUNT"
+
+                      CURRENT_TASK_DEF_ARN=$(
+                        aws ecs describe-services \
+                          --cluster "$CLUSTER" \
+                          --services "$ECS_SERVICE" \
+                          --query 'services[0].taskDefinition' \
+                          --output text
+                      )
+
+                      if [ -z "$CURRENT_TASK_DEF_ARN" ] || [ "$CURRENT_TASK_DEF_ARN" = "None" ]; then
+                        echo "ERROR: Service $ECS_SERVICE not found in cluster $CLUSTER."
+                        exit 1
+                      fi
+
+                      aws ecs describe-task-definition \
+                        --task-definition "$CURRENT_TASK_DEF_ARN" \
+                        --query 'taskDefinition' > /tmp/taskdef.json
+
+                      # Remove read-only fields and swap the image for the target container.
+                      jq \
+                        --arg image "$IMAGE" \
+                        --arg container "$CONTAINER_NAME" \
+                        'del(.status, .revision, .taskDefinitionArn, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy, .tags)
+                          | .family = "'$ECS_TASK_FAMILY'"
+                          | .containerDefinitions = [ .containerDefinitions[] | if .name == $container then .image = $image else . end ]' \
+                        /tmp/taskdef.json > /tmp/new-taskdef.json
+
+                      NEW_TASK_DEF_ARN=$(
+                        aws ecs register-task-definition \
+                          --cli-input-json file:///tmp/new-taskdef.json \
+                          --query 'taskDefinition.taskDefinitionArn' \
+                          --output text
+                      )
+
+                      echo "Registered new task definition: $NEW_TASK_DEF_ARN"
+
+                      aws ecs update-service \
+                        --cluster "$CLUSTER" \
+                        --service "$ECS_SERVICE" \
+                        --task-definition "$NEW_TASK_DEF_ARN" \
+                        --desired-count "$DESIRED_COUNT"
+
+                      echo "Waiting for service to stabilize..."
+                      aws ecs wait services-stable --cluster "$CLUSTER" --services "$ECS_SERVICE"
+
+                      echo "Deployment complete. Service $ECS_SERVICE is running image $IMAGE"

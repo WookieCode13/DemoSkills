@@ -16,6 +16,7 @@ Main goal is to build a demo portfolio project that showcases my resume skills. 
 - [x] Create shared execution role (`demoskillsapi-ecs-execution`) and placeholder task role
 - [x] Create ECS cluster (`demoskills-001-ecs`), log group (`/ecs/employeeapi`), and placeholder task/service
 - [ ] Create Tasks for pay, company and tax.
+- [ ] Create ALB (load balancer) in EC2 80/443. will attach to ECS. Containers will 808x...
 
 ## ⚙️ Phase 2 — API Foundations
 
@@ -35,8 +36,8 @@ Main goal is to build a demo portfolio project that showcases my resume skills. 
 
 ## 🚀 Phase 4 — Harness Deployment
 
-- [ ] Create Harness pipeline YAML
-- [ ] Deploy API to AWS
+- [x] Create Harness pipeline YAML
+- [x] Deploy API to AWS
 - [ ] Create teardown pipeline for resource cleanup
 
 ## 🧪 Phase 5 — Testing & Security

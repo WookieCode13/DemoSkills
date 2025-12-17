@@ -1,17 +1,28 @@
-# this was created by openai, nevere used or tested
-# keeping for now, want to eventually try the - type: BuildAndPushECR
+# Single-stage CI pipeline that builds/tests EmployeeAPI (or other APIs) and
+# uses the Harness BuildAndPushECR step. Configured to run on the local Docker
+# delegate (not Cloud CI).
 pipeline:
-  name: employee-api-ci
-  identifier: employee_api_ci
-  projectIdentifier: REPLACE_ME_PROJECT
-  orgIdentifier: REPLACE_ME_ORG
+  name: DS - API Build (Delegate ECR)
+  identifier: ds_api_build_delegate_ecr
+  projectIdentifier: demo_skills_project
+  orgIdentifier: default
   tags: {}
   properties:
     ci:
       codebase:
-        connectorRef: REPLACE_ME_GIT_CONNECTOR
-        repoName: WookieCode13/DemoSkills
+        connectorRef: git_proj_demoskills
         build: <+input>
+  variables:
+    - name: SERVICE_NAME
+      type: String
+      value: <+input>.allowedValues(EmployeeAPI,CompanyAPI,TaxCalculatorAPI,PayAPI)
+      description: Choose the API to build.
+    - name: AWS_ACCOUNT_ID
+      type: String
+      value: <+secrets.getValue("proj-ds-aws-account-id")>
+    - name: AWS_REGION
+      type: String
+      value: <+secrets.getValue("proj-ds-aws-region")>
   stages:
     - stage:
         name: Build and Push
@@ -23,7 +34,11 @@ pipeline:
             os: Linux
             arch: Amd64
           runtime:
-            type: Cloud
+            type: Docker
+            spec:
+              connectorRef: account.harnessImage
+          delegateSelectors:
+            - harness-docker-delegate-demoskills
           execution:
             steps:
               - step:
@@ -34,24 +49,25 @@ pipeline:
                     shell: Sh
                     command: |
                       dotnet --info
-                      dotnet restore apis/EmployeeAPI/EmployeeAPI.csproj
-                      dotnet build apis/EmployeeAPI/EmployeeAPI.csproj -c Release --no-restore
-                      dotnet test apis/EmployeeAPI/tests/unit/EmployeeAPI.UnitTests/EmployeeAPI.UnitTests.csproj -c Release --no-build
+                      SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
+                      dotnet restore "apis/${SERVICE_NAME}/${SERVICE_NAME}.csproj"
+                      dotnet build "apis/${SERVICE_NAME}/${SERVICE_NAME}.csproj" -c Release --no-restore
+                      # Update test path if the service uses a different test project name/location.
+                      dotnet test "apis/${SERVICE_NAME}/tests/unit/${SERVICE_NAME}.UnitTests/${SERVICE_NAME}.UnitTests.csproj" -c Release --no-build
               - step:
                   type: BuildAndPushECR
                   name: Build and Push to ECR
                   identifier: BuildAndPushECR
                   spec:
-                    connectorRef: REPLACE_ME_AWS_CONNECTOR
-                    region: <+input>.allowedValues(us-east-1,us-west-2,eu-central-1)
-                    account: <+input>
-                    imageName: <+input>.default(employee-api)
+                    connectorRef: <+input> # pick your AWS connector here
+                    region: <+pipeline.variables.AWS_REGION>
+                    account: <+pipeline.variables.AWS_ACCOUNT_ID>
+                    imageName: demoskills
                     tags:
-                      - <+pipeline.sequenceId>
-                    dockerfile: apis/EmployeeAPI/Dockerfile
-                    context: apis/EmployeeAPI
+                      - <+pipeline.variables.SERVICE_NAME>-<+pipeline.sequenceId>
+                    dockerfile: apis/<+pipeline.variables.SERVICE_NAME>/Dockerfile
+                    context: apis/<+pipeline.variables.SERVICE_NAME>
                     target:
                       type: x86_64
         when:
           pipelineStatus: Success
-

@@ -1,12 +1,13 @@
-# YAML pipeline definition for building and pushing Docker images using Harness Cloud CI
+# Using the the online Harenss UI, the work is don on my linux box with a local docker delegate.
+# YAML pipeline definition for building and pushing Docker images using the Harness Docker delegate
 # The multi-stage approach but with local delegate using docker runtime instead of cloud CI.
-# TBD speed and efficiency comparison with single stage CI pipeline.
+# No Hareness credits used, a little faster then single stage. A lot faster then multi-stage cloud CI.
 pipeline:
-  identifier: DS_Build_w_Cloud_2
-  name: DS - Build w Cloud
+  name: DS - Build w Docker Delegate
+  identifier: DS_Build_w_Docker_Delegate
   projectIdentifier: demo_skills_project
   orgIdentifier: default
-  description: "A pipeline that will use the Harness cloud CI. "
+  description: "A pipeline that will use the Harness docker delegate."
   tags: {}
 
   properties:
@@ -32,14 +33,17 @@ pipeline:
         name: setup
         identifier: setup
         type: CI
+        delegateSelectors:
+          - harness-docker-delegate-demoskills
         spec:
           cloneCodebase: true
           platform:
             os: Linux
             arch: Amd64
           runtime:
-            type: Cloud
-            spec: {}
+            type: Docker
+            spec:
+              connectorRef: account.harnessImage
           execution:
             steps:
               - step:
@@ -78,14 +82,17 @@ pipeline:
         name: build-and-test
         identifier: build_and_test
         type: CI
+        delegateSelectors:
+          - harness-docker-delegate-demoskills        
         spec:
           cloneCodebase: true
           platform:
             os: Linux
             arch: Amd64
           runtime:
-            type: Cloud
-            spec: {}
+            type: Docker
+            spec:
+              connectorRef: account.harnessImage
           execution:
             steps:
               - step:
@@ -127,14 +134,17 @@ pipeline:
         name: docker-build-and-push
         identifier: docker_build_and_push
         type: CI
+        delegateSelectors:
+          - harness-docker-delegate-demoskills
         spec:
           cloneCodebase: true
           platform:
             os: Linux
             arch: Amd64
           runtime:
-            type: Cloud
-            spec: {}
+            type: Docker
+            spec:
+              connectorRef: account.harnessImage
           execution:
             steps:
               - step:
@@ -143,6 +153,7 @@ pipeline:
                   identifier: dsecrloginstep
                   spec:
                     shell: Sh
+                    privileged: true
                     command: |-
                       echo "Logging into ECR..."
 
@@ -162,6 +173,7 @@ pipeline:
                   identifier: Build_And_Push_Image
                   spec:
                     shell: Sh
+                    privileged: true
                     command: |-
                       set -e
 
@@ -196,14 +208,17 @@ pipeline:
         name: post
         identifier: post
         type: CI
+        delegateSelectors:
+          - harness-docker-delegate-demoskills
         spec:
           cloneCodebase: false
           platform:
             os: Linux
             arch: Amd64
           runtime:
-            type: Cloud
-            spec: {}
+            type: Docker
+            spec:
+              connectorRef: account.harnessImage
           execution:
             steps:
               - step:
