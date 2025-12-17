@@ -75,6 +75,39 @@ Note: using 1 repo with tags, again for a quick setup, if i have to tear down AW
 7. **Ready for Harness**
    - Capture: region, cluster `demoskills-001-ecs`, task family `employeeapi-task`, service `employeeapi-svc`, roles, log group, and ECR repo URL.
    - Decide registry (ECR vs external). Harness will update the task definition image, set desired count, and add ALB later if needed.
+8. **ALB - Load Balancer (per-port targets, shared ALB)**
+   - new security group `demoskills-alb-sg`.
+      - EC2 > Security group > name and use same vpc as ECS.
+   - Target groups (one per API/port):
+     - EC > Load Balancing > Target Groups.
+     - `demoskills-tg-8080`  
+     - Type: IP; Protocol: HTTP; Port: match container port (EmployeeAPI 8080; future 8081/8082...).
+     - same VPC
+     - Health check: path `/swagger` or `/health`; port: traffic port.
+   - Create ALB (EC2 console > Load Balancers):
+     - `demoskills-alb`
+     - same VPC, add alb-sg, add target group.
+     - Scheme: internet-facing; Type: Application.
+     - Listeners: HTTP 80 (add HTTPS 443 later with cert).
+     - Subnets: pick two public subnets; SG: new SG allowing 80/443 from 0.0.0.0/0.
+   - Wire listeners to target groups:
+     - Default action: forward to EmployeeAPI TG (8080) or add path rules like `/employeeapi` → TG8080, `/companyapi` → TG8081.
+   - ECS service updates:
+     - ECS > my ecs > my servcie > update > down to load balancing
+       - type: Application Load Balancer > add my ALB, http 80, and my Target grp.
+     - For each service, set network mode awsvpc, assign public IP, and attach the matching target group with container port set to that API’s port.
+     - Service/task SG: allow inbound from the ALB SG on the app port (8080/8081/8082), not from the internet directly.
+   - NOTE: 
+      - SG ecs task
+         - Custom TCP, 8080, select the ALB (Source: your ALB security group (e.g., demoskills-alb-sg), not an IP range, may have to create new if error cidr.)
+      - SG ALB
+         - 80/443
+   - Test:
+     - Hit `http://<ALB-DNS>/swagger` (or path-based rule), or `curl -v http://<ALB-DNS>:80/`.
+     - Verify target health in the TG; if unhealthy, check port mapping, SG rules, and health-check path.
+9. 8. **Route 53 - <use my domain>**
+   - Route 53 > Hosted Zones > create zone > 2 records NS SOA > create new record > Alias is there. alias to ALB.
+      - TYPE:a, BLANK (sub here future), alias: yes, Route traffic to: target my Alb (app load bal, us-east, my alb) , policy simple
 
 ## Phase 2 - Harness Connector Prep (before pipelines)
 
@@ -117,11 +150,21 @@ Goal: set up the Harness project, delegate, connectors, and validate ECR/ECS acc
 ## Phase 3 - Harness Pipelines (build/deploy/pause)
 
 Goal: automate image build/push and ECS updates; keep costs down by pausing (desired count 0) when idle.
+Note: successful ECR image thru single stage cloud ci.
+Note: successful ECR image thru multi stage cloud ci. (much slower and higher creit cost)
+
 
 1. **Connectors/secrets**
    - Ensure Phase 2 connectors exist: Git first (repo PAT), then AWS (ECR/ECS + iam:PassRole), and ECR registry using the AWS connector. Secrets stored in Harness.
 2. **Build stage**
-   - Stage type: CI (Build); infrastructure: docker delegate on the Linux box.
+   - Option 1: Stage type: CI (Build); infrastructure: docker delegate on the Linux box.
+   - (Working local setup) Run runner + delegate on host network so localhost:3000 is reachable:
+     - `docker rm -f harness-ci-runner harness-docker-delegate-demoskills`
+     - Runner: `docker run -d --name harness-ci-runner --restart unless-stopped --network host -v /var/run/docker.sock:/var/run/docker.sock harness/ci-lite-engine:latest`
+     - Delegate: `docker run -d --name harness-docker-delegate-demoskills --restart unless-stopped --privileged --network host -v /var/run/docker.sock:/var/run/docker.sock -e ACCOUNT_ID=YOUR_ACCOUNT_ID -e DELEGATE_TOKEN=YOUR_DELEGATE_TOKEN -e MANAGER_HOST_AND_PORT=https://app.harness.io -e DELEGATE_NAME=harness-docker-delegate-demoskills -e DELEGATE_TAGS=harness-docker-delegate-demoskills -e NEXT_GEN=true -e DELEGATE_TYPE=DOCKER us-docker.pkg.dev/gar-prod-setup/harness-public/harness/delegate:25.11.87301`
+     - Sanity: `docker ps | grep ci-lite` and `sudo ss -lntp | grep :3000`
+   - Option 2: Stage type: CI (Build); infrastructure: cloud (have script for single and multistage).
+   - TBD 
    - 2.1 Checkout: use the Git connector; shallow clone ok.
    - 2.2 ECR login: `aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <account>.dkr.ecr.<region>.amazonaws.com`.
    - 2.3 Build: `docker build -f docker/services/EmployeeAPI.Dockerfile -t <account>.dkr.ecr.<region>.amazonaws.com/demoskills:employeeapi-latest .`
