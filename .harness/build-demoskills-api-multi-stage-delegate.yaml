@@ -125,8 +125,9 @@ pipeline:
                     command: |
                       SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
                       cd "apis/${SERVICE_NAME}"
+                      export PYTHONPATH="$PWD"
                       python -m pip install --no-cache-dir -r requirements.txt
-                      python -m pytest
+                      python -m pytest -vv
 
     # -------------------- STAGE 3: DOCKER BUILD & PUSH --------------------
     - stage:
