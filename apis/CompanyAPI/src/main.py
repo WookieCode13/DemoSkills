@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Body, FastAPI, HTTPException, Path, status
+from fastapi import APIRouter, Body, FastAPI, HTTPException, Path, status
 from pydantic import BaseModel, Field
 
 
@@ -34,30 +34,31 @@ _companies: dict[int, Company] = {
 _next_company_id = 3
 
 
-@app.get("/health", tags=["ops"])
-def health() -> HealthResponse:
-    return HealthResponse(status="ok", service="companyapi")
-
-
 @app.get("/", tags=["ops"])
 def root():
     return {"service": "companyapi", "docs": "/docs", "health": "/health"}
 
 
-@app.get(
-    "/api/v1/companies",
+router = APIRouter(prefix="/api/v1/companies", tags=["companies"])
+
+
+@router.get("/health", response_model=HealthResponse, tags=["ops"])
+def health() -> HealthResponse:
+    return HealthResponse(status="ok", service="companyapi")
+
+
+@router.get(
+    "",
     response_model=list[Company],
-    tags=["companies"],
     summary="List companies",
 )
 def list_companies() -> list[Company]:
     return sorted(_companies.values(), key=lambda c: c.id)
 
 
-@app.get(
-    "/api/v1/companies/{company_id}",
+@router.get(
+    "/{company_id}",
     response_model=Company,
-    tags=["companies"],
     summary="Get company by id",
 )
 def get_company(
@@ -72,11 +73,10 @@ def get_company(
     return company
 
 
-@app.post(
-    "/api/v1/companies",
+@router.post(
+    "",
     response_model=Company,
     status_code=status.HTTP_201_CREATED,
-    tags=["companies"],
     summary="Create company",
 )
 def create_company(
@@ -92,6 +92,9 @@ def create_company(
     _companies[new_company.id] = new_company
     _next_company_id += 1
     return new_company
+
+
+app.include_router(router)
 
 
 if __name__ == "__main__":

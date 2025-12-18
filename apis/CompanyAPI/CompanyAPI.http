@@ -2,7 +2,7 @@
 @baseUrl = {{companyApiBase}}
 
 ### Health
-GET {{baseUrl}}/health
+GET {{baseUrl}}/api/v1/companies/health
 
 ### List companies
 GET {{baseUrl}}/api/v1/companies

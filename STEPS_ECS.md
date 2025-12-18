@@ -80,7 +80,7 @@ Note: using 1 repo with tags, again for a quick setup, if i have to tear down AW
       - EC2 > Security group > name and use same vpc as ECS.
    - Target groups (one per API/port):
      - EC > Load Balancing > Target Groups.
-     - `demoskills-tg-8080`  
+     - `demoskills-tg-8080`  (should have named it demoskills-emp-tg-8080)
      - Type: IP; Protocol: HTTP; Port: match container port (EmployeeAPI 8080; future 8081/8082...).
      - same VPC
      - Health check: path `/swagger` or `/health`; port: traffic port.
