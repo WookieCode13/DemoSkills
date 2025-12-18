@@ -15,13 +15,19 @@ GET http://demoskills-alb-1952058927.us-east-1.elb.amazonaws.com/swagger/index.h
 
 ### --- Company ---
 ### 8081 is blocked on longranch.com
-GET http://longranch.com:8081/health
+GET http://longranch.com:8081/api/v1/companies/health
 ### 80 is allowed. this it the load balancer.
-GET http://longranch.com:80/health
+GET http://longranch.com:80/api/v1/companies/health
 ### 
-GET http://longranch.com/health 
-###
+GET http://longranch.com/api/v1/companies/health 
+### 
+GET http://longranch.com/api/v1/companies/health 
+### 
+GET http://longranch.com/api/v1/companies/health 
+### swagger ui
 GET http://longranch.com/swagger/index.html
+### swagger ui
+GET http://longranch.com/docs
 ###
 GET http://demoskills-alb-1952058927.us-east-1.elb.amazonaws.com/health
 ###
