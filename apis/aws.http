@@ -7,6 +7,8 @@ GET http://longranch.com:80/api/v1/employees/health
 ### health no port
 GET http://longranch.com/api/v1/employees/health
 ### swagger
+GET http://longranch.com/api/v1/employees/swagger
+### swagger
 GET http://longranch.com/employees/swagger
 ### health
 GET http://demoskills-alb-1952058927.us-east-1.elb.amazonaws.com/api/v1/employees/health
@@ -22,6 +24,8 @@ GET http://longranch.com:80/api/v1/companies/health
 GET http://longranch.com/api/v1/companies/health
 ### 
 GET http://longranch.com/api/v1/companies
+### doc (py swagger)
+GET http://longranch.com/companies/swagger
 ### doc (py swagger)
 GET http://longranch.com/companies/docs
 ### operations (health)
