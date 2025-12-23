@@ -1,0 +1,99 @@
+# CI-style utility pipeline to scale ECS services up/down using the docker delegate.
+# IMPORTANT: run locally > sudo -E ./harness-docker-runner-linux-amd64 server (keep running in background).
+# ALSO: CI-LITE-ENGINE is NOT needed on local machine. MUST install the Harness exe.
+pipeline:
+  name: DS - ECS Scale Services
+  identifier: DS_ECS_Scale_Services
+  projectIdentifier: demo_skills_project
+  orgIdentifier: default
+  description: Used to scale the desired count. Used to reduce tasks to 0 on none usage days. Cost Savings.
+    ECS_SERVICES_CSV values saved in project variables, comma delim.
+  tags: {}
+
+  variables:
+    - name: DESIRED_COUNT
+      type: Number
+      value: <+input>
+      description: Desired count to set on services (e.g., 0 to pause, 1 to resume).
+    - name: ECS_CLUSTER
+      type: String
+      value: demoskills-001-ecs
+      description: Target ECS cluster.
+    - name: SERVICES
+      type: String
+      value: <+variable.ECS_SERVICES_CSV>
+      description: Comma-separated ECS task service names to scale (project variable ECS_SERVICES_CSV).
+
+  stages:
+    - stage:
+        name: scale-services
+        identifier: scale_services
+        type: CI
+        delegateSelectors:
+          - harness-docker-delegate-demoskills 
+        spec:
+          cloneCodebase: false
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Docker
+            spec:
+              connectorRef: account.harnessImage
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Scale ECS Services
+                  identifier: scale_ecs_services
+                  spec:
+                    shell: Sh
+                    image: amazon/aws-cli:2.23.4
+                    envVariables:
+                      AWS_ACCOUNT_ID: <+secrets.getValue("proj-ds-aws-account-id")>
+                      AWS_ACCESS_KEY_ID: <+secrets.getValue("proj-ds-aws-access-key-id")>
+                      AWS_SECRET_ACCESS_KEY: <+secrets.getValue("proj-ds-aws-secret-access-key")>
+                      AWS_REGION: <+secrets.getValue("proj-ds-aws-region")>
+                    command: |-
+                      set -euo pipefail
+
+                      CLUSTER="<+pipeline.variables.ECS_CLUSTER>"
+                      DESIRED_RAW="<+pipeline.variables.DESIRED_COUNT>"
+                      SERVICES_CSV="<+pipeline.variables.SERVICES>"
+
+                      DESIRED="${DESIRED_RAW%.*}"
+                      if [ -z "$DESIRED" ]; then
+                        echo "Invalid desired count: '$DESIRED_RAW'"
+                        exit 1
+                      fi
+
+                      echo "SERVICES_CSV raw: '${SERVICES_CSV}'"
+
+                      # Guard against missing/placeholder services (null/"").
+                      if [ -z "$SERVICES_CSV" ] || [ "$SERVICES_CSV" = "null" ] || [ "$SERVICES_CSV" = "\"\"" ]; then
+                        echo "No services provided in SERVICES variable (ECS_SERVICES_CSV project variable)."
+                        exit 1
+                      fi
+
+                      IFS=',' read -r -a SERVICES <<< "$SERVICES_CSV"
+                      if [ "${#SERVICES[@]}" -eq 0 ]; then
+                        echo "No services provided in SERVICES variable."
+                        exit 1
+                      fi
+
+                      echo "Scaling services on cluster $CLUSTER to desired count: $DESIRED"
+                      for svc in "${SERVICES[@]}"; do
+                        svc_trimmed="$(echo "$svc" | xargs)"
+                        if [ -z "$svc_trimmed" ] || [ "$svc_trimmed" = "null" ] || [ "$svc_trimmed" = "\"\"" ]; then
+                          continue
+                        fi
+                        echo "Updating $svc_trimmed ..."
+                        aws ecs update-service \
+                          --cluster "$CLUSTER" \
+                          --service "$svc_trimmed" \
+                          --desired-count "$DESIRED" >/tmp/scale-${svc_trimmed}.json
+                        echo "  OK"
+                      done
+
+                      echo "Done. Updated services:"
+                      printf '  - %s\n' "${SERVICES[@]}"

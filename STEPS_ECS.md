@@ -151,8 +151,8 @@ Goal: set up the Harness project, delegate, connectors, and validate ECR/ECS acc
 
 Goal: automate image build/push and ECS updates; keep costs down by pausing (desired count 0) when idle.
 Note: successful ECR image thru single stage cloud ci.
-Note: successful ECR image thru multi stage cloud ci. (much slower and higher creit cost)
-
+Note: successful ECR image thru multi stage cloud ci. (much slower and higher creit cost).
+Note: successful ECR image thru multi stage local delegate. (required running the harness exe server locally, see personal notes).
 
 1. **Connectors/secrets**
    - Ensure Phase 2 connectors exist: Git first (repo PAT), then AWS (ECR/ECS + iam:PassRole), and ECR registry using the AWS connector. Secrets stored in Harness.

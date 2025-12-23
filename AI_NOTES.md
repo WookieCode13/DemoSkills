@@ -50,3 +50,11 @@ Goal: have Harness deploy to AWS and also run a teardown pipeline.
 - Delegate/runner: place in same region/VPC if possible; ensure outbound 443 and NAT/VPC endpoints if private; role/keys carry above perms.
 - Secrets: store PAT/AWS creds/registry creds as Harness secrets; name predictably (e.g., aws_demoskills_creds, github_pat_demoskills).
 - Quick checks: `aws sts get-caller-identity`, `aws ecr describe-repositories --repository-names demoskills`, `aws ecs list-clusters`; run Harness connector tests for Git and ECR.
+
+---
+
+## 2025-12-22 - CompanyAPI ALB 503 Fix Notes
+- Company API was returning 503 via ALB while Employee worked; target likely failing health checks.
+- Added top-level `/health` and `/swagger` (redirects to `/docs`) in `apis/CompanyAPI/src/main.py` to align with ALB/TG probes.
+- After redeploying the image, set the Company TG health check to `/health` (or `/api/v1/companies/health`) and confirm container port 8081 is used.
+- Verify ALB listener rule maps company path to the 8081 TG; keep service SG allowing 8081 from ALB SG only; ALB SG allows 80/443 from internet.

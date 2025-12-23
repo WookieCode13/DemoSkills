@@ -2,6 +2,8 @@
 # YAML pipeline definition for building and pushing Docker images using the Harness Docker delegate
 # The multi-stage approach but with local delegate using docker runtime instead of cloud CI.
 # No Hareness credits used, a little faster then single stage. A lot faster then multi-stage cloud CI.
+# IMPORTANT: run locally > sudo -E ./harness-docker-runner-linux-amd64 server (keep running in background).
+# ALSO: CI-LITE-ENGINE is NOT needed on local machine. MUST install the Harness exe.
 pipeline:
   name: DS - Build w Docker Delegate
   identifier: DS_Build_w_Docker_Delegate
