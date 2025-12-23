@@ -1,7 +1,6 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Body, FastAPI, HTTPException, Path, status
-from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
 
@@ -9,6 +8,8 @@ app = FastAPI(
     title="CompanyAPI",
     version="0.1.0",
     description="DemoSkills Company API (FastAPI).",
+    docs_url="/companies/docs",
+    openapi_url="/companies/openapi.json",
 )
 
 
@@ -37,27 +38,17 @@ _next_company_id = 3
 
 @app.get("/", tags=["ops"])
 def root():
-    return {"service": "companyapi", "docs": "/docs", "health": "/health"}
+    return {
+        "service": "companyapi",
+        "docs": "/companies/docs",
+        "openapi": "/companies/openapi.json",
+        "health": "/health",
+    }
 
 
 @app.get("/health", response_model=HealthResponse, tags=["ops"])
 def root_health() -> HealthResponse:
     return HealthResponse(status="ok", service="companyapi")
-
-
-@app.get("/swagger", include_in_schema=False)
-def swagger_redirect():
-    return RedirectResponse(url="/docs")
-
-
-@app.get("/companies/docs", include_in_schema=False)
-def companies_docs():
-    return RedirectResponse(url="/docs")
-
-
-@app.get("/companies/openapi.json", include_in_schema=False)
-def companies_openapi():
-    return app.openapi()
 
 
 router = APIRouter(prefix="/api/v1/companies", tags=["companies"])

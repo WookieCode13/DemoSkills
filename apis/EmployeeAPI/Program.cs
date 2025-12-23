@@ -36,8 +36,15 @@ builder.Services.AddSwaggerGen();
 var enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger", false) || app.Environment.IsDevelopment();
 if (enableSwagger)
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwagger(c =>
+    {
+        c.RouteTemplate = "employees/swagger/{documentName}/swagger.json";
+    });
+    app.UseSwaggerUI(c =>
+    {
+        c.RoutePrefix = "employees/swagger";
+        c.SwaggerEndpoint("v1/swagger.json", "EmployeeAPI v1");
+    });
 }
 
     app.UseSerilogRequestLogging();
@@ -51,9 +58,6 @@ if (enableSwagger)
     //app.UseHttpsRedirection();
 
 app.UseAuthorization();
-
-    // Friendly paths for ALB/routing
-    app.MapGet("/employees/swagger", () => Results.Redirect("/swagger", permanent: false));
 
     // Note: No root ("/") or top-level "/health" endpoints
 
