@@ -231,4 +231,6 @@ pipeline:
                     shell: Sh
                     command: |-
                       IMAGE_TAG="<+pipeline.stages.setup.spec.execution.steps.GENERATE_IMAGE_NAME.output.outputVariables.IMAGE_TAG>"
-                      echo "Final IMAGE_TAG (for deploy or copy): $IMAGE_TAG"
+                      printf '\033[32m------------------------------------------------------------\033[0m\n'
+                      printf '\033[32m>>> Final IMAGE_TAG (for deploy or copy): %s <<<\033[0m\n' "$IMAGE_TAG"
+                      printf '\033[32m------------------------------------------------------------\033[0m\n'
