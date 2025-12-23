@@ -24,26 +24,14 @@ pipeline:
       type: String
       value: demoskills-001-ecs
       description: Target ECS cluster.
+    - name: ECS_SERVICES_CSV
+      type: String
+      value: <+variable.ECS_SERVICES_CSV>
+      description: Comma-separated ECS service names (project variable ECS_SERVICES_CSV).
     - name: DESIRED_COUNT
       type: Number
       value: 1
       description: Desired task count after deploy.
-    - name: ECS_SERVICE_OVERRIDE
-      type: String
-      value: ""
-      description: Optional explicit ECS service name (default is <service>-svc).
-    - name: ECS_TASK_FAMILY_OVERRIDE
-      type: String
-      value: ""
-      description: Optional explicit task family (default is <service>-task).
-    - name: CONTAINER_NAME_OVERRIDE
-      type: String
-      value: ""
-      description: Optional explicit container name in the task def (default is <service>).
-    - name: CONTAINER_PORT_OVERRIDE
-      type: Number
-      value: ""
-      description: Optional override for container port mapping (e.g., 8081 for CompanyAPI).
 
   stages:
     - stage:
@@ -84,30 +72,15 @@ pipeline:
                       SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
                       IMAGE_TAG="<+pipeline.variables.IMAGE_TAG>"
                       CLUSTER="<+pipeline.variables.ECS_CLUSTER>"
+                      SERVICES_CSV_RAW="<+pipeline.variables.ECS_SERVICES_CSV>"
                       DESIRED_COUNT_RAW="<+pipeline.variables.DESIRED_COUNT>"
-                      CONTAINER_PORT_RAW="<+pipeline.variables.CONTAINER_PORT_OVERRIDE>"
                       ECR_REPO="demoskills"
 
-                      # Derive names, allow overrides if your ECS objects differ.
+                      # Derive names; prefer project variable list for real service names.
                       SERVICE_KEY=$(echo "$SERVICE_NAME" | tr '[:upper:]' '[:lower:]')
-                      ECS_SERVICE="<+pipeline.variables.ECS_SERVICE_OVERRIDE>"
-                      ECS_TASK_FAMILY="<+pipeline.variables.ECS_TASK_FAMILY_OVERRIDE>"
-                      CONTAINER_NAME="<+pipeline.variables.CONTAINER_NAME_OVERRIDE>"
-
-                      # Default service names; adjust for existing AWS service naming.
-                      if [ -z "$ECS_SERVICE" ]; then
-                        if [ "$SERVICE_NAME" = "EmployeeAPI" ]; then
-                          ECS_SERVICE="employeeapi-task-service-yvb10k9p"
-                        else
-                          ECS_SERVICE="${SERVICE_KEY}-svc"
-                        fi
-                      fi
-                      if [ -z "$ECS_TASK_FAMILY" ]; then
-                        ECS_TASK_FAMILY="${SERVICE_KEY}-task"
-                      fi
-                      if [ -z "$CONTAINER_NAME" ]; then
-                        CONTAINER_NAME="${SERVICE_KEY}"
-                      fi
+                      ECS_SERVICE=""
+                      ECS_TASK_FAMILY="${SERVICE_KEY}-task"
+                      CONTAINER_NAME="${SERVICE_KEY}"
 
                       IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG"
 
@@ -124,9 +97,22 @@ pipeline:
 
                       echo "Desired count: $DESIRED_COUNT"
 
-                      CONTAINER_PORT="${CONTAINER_PORT_RAW%.*}"
-                      if [ -n "${CONTAINER_PORT:-}" ]; then
-                        echo "Container port override: $CONTAINER_PORT"
+                      # Try to derive from ECS_SERVICES_CSV (project variable) first; each entry starts with the lower-case service name.
+                      if [ -n "${SERVICES_CSV_RAW:-}" ] && [ "$SERVICES_CSV_RAW" != "null" ]; then
+                        IFS=',' read -r -a SERVICES_FROM_VAR <<< "$SERVICES_CSV_RAW"
+                        for svc in "${SERVICES_FROM_VAR[@]}"; do
+                          svc_trimmed="$(echo "$svc" | xargs)"
+                          if echo "$svc_trimmed" | grep -qi "^${SERVICE_KEY}"; then
+                            ECS_SERVICE="$svc_trimmed"
+                            echo "Mapped service from ECS_SERVICES_CSV: $ECS_SERVICE"
+                            break
+                          fi
+                        done
+                      fi
+
+                      # Fall back to default naming if CSV did not match.
+                      if [ -z "$ECS_SERVICE" ]; then
+                        ECS_SERVICE="${SERVICE_KEY}-svc"
                       fi
 
                       CURRENT_TASK_DEF_ARN=$(
@@ -137,8 +123,34 @@ pipeline:
                           --output text
                       )
 
+                      # If the default naming didn't match, try to autodiscover a service containing the key.
                       if [ -z "$CURRENT_TASK_DEF_ARN" ] || [ "$CURRENT_TASK_DEF_ARN" = "None" ]; then
-                        echo "ERROR: Service $ECS_SERVICE not found in cluster $CLUSTER."
+                        echo "Service $ECS_SERVICE not found; attempting discovery for key '$SERVICE_KEY'..."
+                        DISCOVERED_SERVICE=$(
+                          aws ecs list-services \
+                            --cluster "$CLUSTER" \
+                            --query 'serviceArns[]' \
+                            --output text \
+                            | tr '\t' '\n' \
+                            | grep "$SERVICE_KEY" \
+                            | head -n 1
+                        )
+
+                        if [ -n "$DISCOVERED_SERVICE" ]; then
+                          ECS_SERVICE=$(echo "$DISCOVERED_SERVICE" | awk -F'/' '{print $NF}')
+                          echo "Using discovered ECS service: $ECS_SERVICE"
+                          CURRENT_TASK_DEF_ARN=$(
+                            aws ecs describe-services \
+                              --cluster "$CLUSTER" \
+                              --services "$ECS_SERVICE" \
+                              --query 'services[0].taskDefinition' \
+                              --output text
+                          )
+                        fi
+                      fi
+
+                      if [ -z "$CURRENT_TASK_DEF_ARN" ] || [ "$CURRENT_TASK_DEF_ARN" = "None" ]; then
+                        echo "ERROR: Service $ECS_SERVICE not found in cluster $CLUSTER. Update ECS_SERVICES_CSV with the exact service name."
                         exit 1
                       fi
 
@@ -147,31 +159,13 @@ pipeline:
                         --query 'taskDefinition' > /tmp/taskdef.json
 
                       # Remove read-only fields and swap the image for the target container.
-                      if [ -n "${CONTAINER_PORT:-}" ]; then
-                        jq \
-                          --arg image "$IMAGE" \
-                          --arg container "$CONTAINER_NAME" \
-                          --argjson port "$CONTAINER_PORT" \
-                          'del(.status, .revision, .taskDefinitionArn, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy, .tags)
-                            | .family = "'$ECS_TASK_FAMILY'"
-                            | .containerDefinitions = [
-                                .containerDefinitions[]
-                                | if .name == $container
-                                  then (.image = $image
-                                        | (if (.portMappings | type) == "array" then .portMappings = [ .portMappings[] | .containerPort = $port ] else . end))
-                                  else .
-                                  end
-                              ]' \
-                          /tmp/taskdef.json > /tmp/new-taskdef.json
-                      else
-                        jq \
+                      jq \
                         --arg image "$IMAGE" \
                         --arg container "$CONTAINER_NAME" \
                         'del(.status, .revision, .taskDefinitionArn, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy, .tags)
                           | .family = "'$ECS_TASK_FAMILY'"
                           | .containerDefinitions = [ .containerDefinitions[] | if .name == $container then .image = $image else . end ]' \
                         /tmp/taskdef.json > /tmp/new-taskdef.json
-                      fi
 
                       NEW_TASK_DEF_ARN=$(
                         aws ecs register-task-definition \

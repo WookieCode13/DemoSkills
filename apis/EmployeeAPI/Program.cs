@@ -52,6 +52,9 @@ if (enableSwagger)
 
 app.UseAuthorization();
 
+    // Friendly paths for ALB/routing
+    app.MapGet("/employees/swagger", () => Results.Redirect("/swagger", permanent: false));
+
     // Note: No root ("/") or top-level "/health" endpoints
 
     app.MapControllers();
