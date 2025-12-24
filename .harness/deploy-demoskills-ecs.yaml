@@ -20,6 +20,10 @@ pipeline:
       type: String
       value: <+input>
       description: Tag produced by the demoskills build pipeline.
+    - name: BUILD_REF
+      type: String
+      value: <+input>
+      description: Branch/tag ref to inject into container env (e.g., for Swagger display).
     - name: ECS_CLUSTER
       type: String
       value: demoskills-001-ecs
@@ -71,6 +75,7 @@ pipeline:
 
                       SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
                       IMAGE_TAG="<+pipeline.variables.IMAGE_TAG>"
+                      BUILD_REF="<+pipeline.variables.BUILD_REF>"
                       CLUSTER="<+pipeline.variables.ECS_CLUSTER>"
                       SERVICES_CSV_RAW="<+pipeline.variables.ECS_SERVICES_CSV>"
                       DESIRED_COUNT_RAW="<+pipeline.variables.DESIRED_COUNT>"
@@ -162,9 +167,23 @@ pipeline:
                       jq \
                         --arg image "$IMAGE" \
                         --arg container "$CONTAINER_NAME" \
+                        --arg build_ref "$BUILD_REF" \
                         'del(.status, .revision, .taskDefinitionArn, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy, .tags)
                           | .family = "'$ECS_TASK_FAMILY'"
-                          | .containerDefinitions = [ .containerDefinitions[] | if .name == $container then .image = $image else . end ]' \
+                          | .containerDefinitions = [
+                              .containerDefinitions[]
+                              | if .name == $container then
+                                  .image = $image
+                                  | .environment = (
+                                      (.environment // [])
+                                      | map(select(.name != "BUILD_BRANCH" and .name != "BUILD_REF"))
+                                      + [
+                                          { "name": "BUILD_BRANCH", "value": $build_ref },
+                                          { "name": "BUILD_REF", "value": $build_ref }
+                                        ]
+                                    )
+                                else . end
+                            ]' \
                         /tmp/taskdef.json > /tmp/new-taskdef.json
 
                       NEW_TASK_DEF_ARN=$(
