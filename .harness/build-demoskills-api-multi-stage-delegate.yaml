@@ -9,7 +9,7 @@ pipeline:
   identifier: DS_Build_w_Docker_Delegate
   projectIdentifier: demo_skills_project
   orgIdentifier: default
-  description: "A pipeline that will use the Harness docker delegate."
+  description: A pipeline that will use the Harness docker delegate.
   tags: {}
 
   properties:
@@ -52,35 +52,35 @@ pipeline:
                   type: Run
                   name: Generate Image Name
                   identifier: GENERATE_IMAGE_NAME
-                spec:
-                  shell: Sh
-                  outputVariables:
-                    - name: IMAGE_TAG
-                    - name: BUILD_REF
-                  command: |
-                    SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
-                    GIT_TAG="<+codebase.gitTag>"
-                    BRANCH="<+codebase.branch>"
+                  spec:
+                    shell: Sh
+                    outputVariables:
+                      - name: IMAGE_TAG
+                      - name: BUILD_REF
+                    command: |
+                      SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
+                      GIT_SPEC_TAG="<+pipeline.properties.ci.codebase.build.spec.tag>"
+                      GIT_TAG="<+codebase.gitTag>"
+                      BRANCH="<+codebase.branch>"
 
-                      if [ -z "$GIT_TAG" ] || [ "$GIT_TAG" = "null" ] || [ "$GIT_TAG" = "'null'" ]; then
-                        GIT_TAG="branch"
-                      fi
+                      SAFE_BRANCH=$(echo "$BRANCH" | tr '/' '-') 
+                      CLEAN_BRANCH=$(echo "$SAFE_BRANCH" | sed 's/^feature-//')
 
-                      if [ -z "$BRANCH" ] || [ "$BRANCH" = "null" ] || [ "$BRANCH" = "'null'" ]; then
-                        CLEAN_BRANCH="release"
-                      else
-                        SAFE_BRANCH=$(echo "$BRANCH" | tr '/' '-')
-                        CLEAN_BRANCH=$(echo "$SAFE_BRANCH" | sed 's/^feature-//')
-                      fi
+                      pick_first() {
+                        for val in "$@"; do
+                          if [ -n "$val" ] && [ "$val" != "null" ] && [ "$val" != "'null'" ]; then
+                            echo "$val"
+                            return 0
+                          fi
+                        done
+                        echo "no_name"
+                      }
 
-                      # Choose branch if present, otherwise git tag; append sequence for uniqueness.
-                      BRANCH_OR_TAG="$CLEAN_BRANCH"
-                      if [ -n "$GIT_TAG" ] && [ "$GIT_TAG" != "null" ] && [ "$GIT_TAG" != "'null'" ] && [ "$GIT_TAG" != "branch" ]; then
-                        BRANCH_OR_TAG="$GIT_TAG"
-                      fi
+                      # Order: git spec tag (manual input) -> git tag -> branch -> no_name.
+                      BRANCH_OR_TAG="$(pick_first "$GIT_SPEC_TAG" "$GIT_TAG" "$CLEAN_BRANCH")"
 
-                      BUILD_REF="${BRANCH_OR_TAG}.b<+pipeline.sequenceId>"
-                      IMAGE_TAG="${SERVICE_NAME}-${BUILD_REF}"
+                      BUILD_REF="${BRANCH_OR_TAG}"
+                      IMAGE_TAG="${SERVICE_NAME}-${BUILD_REF}.b<+pipeline.sequenceId>"
 
                       echo "Generated IMAGE_TAG: $IMAGE_TAG"
                       echo "Generated BUILD_REF: $BUILD_REF"
