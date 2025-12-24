@@ -16,10 +16,12 @@ pipeline:
       type: String
       value: <+input>.allowedValues(EmployeeAPI,CompanyAPI,TaxCalculatorAPI,PayAPI)
       description: API to deploy.
+      required: true
     - name: IMAGE_TAG
       type: String
       value: <+input>
       description: Tag produced by the demoskills build pipeline.
+      required: true
     - name: BUILD_REF
       type: String
       value: <+input>

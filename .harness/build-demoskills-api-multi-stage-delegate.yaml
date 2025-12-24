@@ -23,11 +23,13 @@ pipeline:
       type: String
       value: <+input>.allowedValues(EmployeeAPI,CompanyAPI,TaxCalculatorAPI,PayAPI)
       description: Choose the API to build.
+      required: true
     - name: BUILD_TYPE
       type: String
       value: <+input>.allowedValues(CS,PY)
       default: CS
       description: Choose C-Csharp(CS) or Python(PY) builder.
+      required: true
 
   stages:
     # -------------------- STAGE 1: SETUP (generate tag) --------------------

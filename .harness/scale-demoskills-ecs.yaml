@@ -15,6 +15,7 @@ pipeline:
       type: Number
       value: <+input>
       description: Desired count to set on services (e.g., 0 to pause, 1 to resume).
+      required: true
     - name: ECS_CLUSTER
       type: String
       value: demoskills-001-ecs
