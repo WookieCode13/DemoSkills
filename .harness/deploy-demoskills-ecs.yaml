@@ -94,10 +94,23 @@ pipeline:
                       echo "Service: $ECS_SERVICE"
                       echo "Task family: $ECS_TASK_FAMILY"
                       echo "Container: $CONTAINER_NAME"
+                      echo "Incoming BUILD_REF: ${BUILD_REF:-<empty>}"
                       # Coerce desired count to integer (Harness may send "1.0" for Number fields).
                       DESIRED_COUNT="${DESIRED_COUNT_RAW%.*}"
                       if [ -z "$DESIRED_COUNT" ]; then
                         DESIRED_COUNT=1
+                      fi
+
+                      # Derive BUILD_REF from IMAGE_TAG if not provided (expects SERVICE-ref.bNN format).
+                      if [ -z "${BUILD_REF:-}" ] || [ "${BUILD_REF}" = "null" ] || [ "${BUILD_REF}" = "'null'" ]; then
+                        BUILD_REF=$(echo "$IMAGE_TAG" \
+                          | sed "s/^${SERVICE_NAME}-//" \
+                          | sed 's/\.b[0-9]\+$//')
+                        echo "Derived BUILD_REF from IMAGE_TAG: ${BUILD_REF}"
+                      fi
+                      if [ -z "${BUILD_REF:-}" ] || [ "${BUILD_REF}" = "null" ] || [ "${BUILD_REF}" = "'null'" ]; then
+                        BUILD_REF="manual"
+                        echo "BUILD_REF not provided; defaulting to ${BUILD_REF}"
                       fi
 
                       echo "Desired count: $DESIRED_COUNT"
