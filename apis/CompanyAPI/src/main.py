@@ -1,13 +1,16 @@
 from typing import Annotated
 
+import os
 from fastapi import APIRouter, Body, FastAPI, HTTPException, Path, status
 from pydantic import BaseModel, Field
 
 
+_build_branch = os.getenv("BUILD_BRANCH", "local")
+
 app = FastAPI(
     title="CompanyAPI",
-    version="0.1.0",
-    description="DemoSkills Company API (FastAPI).",
+    version=f"api v1 ({_build_branch})",
+    description=f"DemoSkills Company API (FastAPI). Build branch: {_build_branch}.",
     docs_url="/companies/docs",
     openapi_url="/companies/openapi.json",
 )

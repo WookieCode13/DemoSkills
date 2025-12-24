@@ -1,3 +1,5 @@
+using System;
+using Microsoft.OpenApi.Models;
 using Serilog;
 
 // Bootstrap Serilog early
@@ -8,6 +10,7 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+    var buildBranch = Environment.GetEnvironmentVariable("BUILD_BRANCH") ?? "local";
 
     // Use Serilog for logging
     builder.Host.UseSerilog((ctx, services, cfg) => cfg
@@ -20,7 +23,15 @@ try
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "EmployeeAPI",
+        Version = $"api v1 ({buildBranch})",
+        Description = $"Build branch: {buildBranch}"
+    });
+});
 
     // Optional: serve the app under a sub-path (e.g., "/employee")
     var pathBase = builder.Configuration["PathBase"];

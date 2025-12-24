@@ -9,7 +9,7 @@ pipeline:
   identifier: DS_Build_w_Docker_Delegate
   projectIdentifier: demo_skills_project
   orgIdentifier: default
-  description: "A pipeline that will use the Harness docker delegate."
+  description: A pipeline that will use the Harness docker delegate.
   tags: {}
 
   properties:
@@ -23,11 +23,13 @@ pipeline:
       type: String
       value: <+input>.allowedValues(EmployeeAPI,CompanyAPI,TaxCalculatorAPI,PayAPI)
       description: Choose the API to build.
+      required: true
     - name: BUILD_TYPE
       type: String
       value: <+input>.allowedValues(CS,PY)
       default: CS
       description: Choose C-Csharp(CS) or Python(PY) builder.
+      required: true
 
   stages:
     # -------------------- STAGE 1: SETUP (generate tag) --------------------
@@ -56,28 +58,38 @@ pipeline:
                     shell: Sh
                     outputVariables:
                       - name: IMAGE_TAG
+                      - name: BUILD_REF
                     command: |
                       SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
+                      GIT_SPEC_TAG="<+pipeline.properties.ci.codebase.build.spec.tag>"
                       GIT_TAG="<+codebase.gitTag>"
                       BRANCH="<+codebase.branch>"
 
-                      if [ -z "$GIT_TAG" ] || [ "$GIT_TAG" = "null" ] || [ "$GIT_TAG" = "'null'" ]; then
-                        GIT_TAG="branch"
-                      fi
+                      SAFE_BRANCH=$(echo "$BRANCH" | tr '/' '-') 
+                      CLEAN_BRANCH=$(echo "$SAFE_BRANCH" | sed 's/^feature-//')
 
-                      if [ -z "$BRANCH" ] || [ "$BRANCH" = "null" ] || [ "$BRANCH" = "'null'" ]; then
-                        CLEAN_BRANCH="release"
-                      else
-                        SAFE_BRANCH=$(echo "$BRANCH" | tr '/' '-')
-                        CLEAN_BRANCH=$(echo "$SAFE_BRANCH" | sed 's/^feature-//')
-                      fi
+                      pick_first() {
+                        for val in "$@"; do
+                          if [ -n "$val" ] && [ "$val" != "null" ] && [ "$val" != "'null'" ]; then
+                            echo "$val"
+                            return 0
+                          fi
+                        done
+                        echo "no_name"
+                      }
 
-                      IMAGE_TAG="${SERVICE_NAME}-${CLEAN_BRANCH}.${GIT_TAG}.b<+pipeline.sequenceId>"
+                      # Order: git spec tag (manual input) -> git tag -> branch -> no_name.
+                      BRANCH_OR_TAG="$(pick_first "$GIT_SPEC_TAG" "$GIT_TAG" "$CLEAN_BRANCH")"
+
+                      BUILD_REF="${BRANCH_OR_TAG}"
+                      IMAGE_TAG="${SERVICE_NAME}-${BUILD_REF}.b<+pipeline.sequenceId>"
 
                       echo "Generated IMAGE_TAG: $IMAGE_TAG"
+                      echo "Generated BUILD_REF: $BUILD_REF"
                       echo "IMAGE_TAG_FOR_COPY=$IMAGE_TAG"
 
                       export IMAGE_TAG="$IMAGE_TAG"
+                      export BUILD_REF="$BUILD_REF"
 
     # -------------------- STAGE 2: BUILD & TEST (CS / PY) --------------------
     - stage:
@@ -231,6 +243,8 @@ pipeline:
                     shell: Sh
                     command: |-
                       IMAGE_TAG="<+pipeline.stages.setup.spec.execution.steps.GENERATE_IMAGE_NAME.output.outputVariables.IMAGE_TAG>"
+                      BUILD_REF="<+pipeline.stages.setup.spec.execution.steps.GENERATE_IMAGE_NAME.output.outputVariables.BUILD_REF>"
                       printf '\033[32m------------------------------------------------------------\033[0m\n'
                       printf '\033[32m>>> Final IMAGE_TAG (for deploy or copy): %s <<<\033[0m\n' "$IMAGE_TAG"
+                      printf '\033[32m>>> Branch/Tag ref: %s <<<\033[0m\n' "$BUILD_REF"
                       printf '\033[32m------------------------------------------------------------\033[0m\n'

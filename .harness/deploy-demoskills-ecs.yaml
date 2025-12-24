@@ -16,10 +16,16 @@ pipeline:
       type: String
       value: <+input>.allowedValues(EmployeeAPI,CompanyAPI,TaxCalculatorAPI,PayAPI)
       description: API to deploy.
+      required: true
     - name: IMAGE_TAG
       type: String
       value: <+input>
       description: Tag produced by the demoskills build pipeline.
+      required: true
+    - name: BUILD_REF
+      type: String
+      value: <+input>
+      description: Branch/tag ref to inject into container env (e.g., for Swagger display).
     - name: ECS_CLUSTER
       type: String
       value: demoskills-001-ecs
@@ -71,6 +77,7 @@ pipeline:
 
                       SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
                       IMAGE_TAG="<+pipeline.variables.IMAGE_TAG>"
+                      BUILD_REF="<+pipeline.variables.BUILD_REF>"
                       CLUSTER="<+pipeline.variables.ECS_CLUSTER>"
                       SERVICES_CSV_RAW="<+pipeline.variables.ECS_SERVICES_CSV>"
                       DESIRED_COUNT_RAW="<+pipeline.variables.DESIRED_COUNT>"
@@ -89,10 +96,23 @@ pipeline:
                       echo "Service: $ECS_SERVICE"
                       echo "Task family: $ECS_TASK_FAMILY"
                       echo "Container: $CONTAINER_NAME"
+                      echo "Incoming BUILD_REF: ${BUILD_REF:-<empty>}"
                       # Coerce desired count to integer (Harness may send "1.0" for Number fields).
                       DESIRED_COUNT="${DESIRED_COUNT_RAW%.*}"
                       if [ -z "$DESIRED_COUNT" ]; then
                         DESIRED_COUNT=1
+                      fi
+
+                      # Derive BUILD_REF from IMAGE_TAG if not provided (expects SERVICE-ref.bNN format).
+                      if [ -z "${BUILD_REF:-}" ] || [ "${BUILD_REF}" = "null" ] || [ "${BUILD_REF}" = "'null'" ]; then
+                        BUILD_REF=$(echo "$IMAGE_TAG" \
+                          | sed "s/^${SERVICE_NAME}-//" \
+                          | sed 's/\.b[0-9]\+$//')
+                        echo "Derived BUILD_REF from IMAGE_TAG: ${BUILD_REF}"
+                      fi
+                      if [ -z "${BUILD_REF:-}" ] || [ "${BUILD_REF}" = "null" ] || [ "${BUILD_REF}" = "'null'" ]; then
+                        BUILD_REF="manual"
+                        echo "BUILD_REF not provided; defaulting to ${BUILD_REF}"
                       fi
 
                       echo "Desired count: $DESIRED_COUNT"
@@ -162,9 +182,23 @@ pipeline:
                       jq \
                         --arg image "$IMAGE" \
                         --arg container "$CONTAINER_NAME" \
+                        --arg build_ref "$BUILD_REF" \
                         'del(.status, .revision, .taskDefinitionArn, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy, .tags)
                           | .family = "'$ECS_TASK_FAMILY'"
-                          | .containerDefinitions = [ .containerDefinitions[] | if .name == $container then .image = $image else . end ]' \
+                          | .containerDefinitions = [
+                              .containerDefinitions[]
+                              | if .name == $container then
+                                  .image = $image
+                                  | .environment = (
+                                      (.environment // [])
+                                      | map(select(.name != "BUILD_BRANCH" and .name != "BUILD_REF"))
+                                      + [
+                                          { "name": "BUILD_BRANCH", "value": $build_ref },
+                                          { "name": "BUILD_REF", "value": $build_ref }
+                                        ]
+                                    )
+                                else . end
+                            ]' \
                         /tmp/taskdef.json > /tmp/new-taskdef.json
 
                       NEW_TASK_DEF_ARN=$(
