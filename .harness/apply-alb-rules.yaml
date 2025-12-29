@@ -1,0 +1,247 @@
+# Utility pipeline to recreate ALB listener rules for all APIs (employees, companies, pay, taxes, reports).
+# ALB should have created the default listener on port 80 already. with default TG.
+# In S3 the harness-settings bucket, store:
+#   alb-listeners.sample.json - my loadbalancer listener definitions (can be empty except for load balancer name)
+#   alb-rules.sample.json - my api rule definitions
+# This is just to help me if I need to recreate rules quickly.
+pipeline:
+  name: DS - Apply ALB Rules
+  identifier: DS_Apply_ALB_Rules
+  projectIdentifier: demo_skills_project
+  orgIdentifier: default
+  tags: {}
+
+  variables:
+    - name: LB_NAME
+      type: String
+      value: <+input>
+      description: ALB name (e.g., demoskills-alb)
+      required: true
+    - name: LISTENER_ARN
+      type: String
+      value: <+input>
+      description: Optional listener ARN (leave blank to auto-resolve first HTTP:80 listener)
+      required: false
+    - name: S3_BUCKET
+      type: String
+      value: harness-settings
+      description: S3 bucket containing listener/rule JSON
+      required: true
+    - name: LISTENERS_KEY
+      type: String
+      value: alb-listeners.sample.json
+      description: S3 key for listeners JSON
+      required: true
+    - name: RULES_KEY
+      type: String
+      value: alb-rules.sample.json
+      description: S3 key for rules JSON
+      required: true
+  stages:
+    - stage:
+        name: apply-rules
+        identifier: apply_rules
+        type: CI
+        delegateSelectors:
+          - harness-docker-delegate-demoskills
+        spec:
+          cloneCodebase: false
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Docker
+            spec:
+              connectorRef: account.harnessImage
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: recreate-rules
+                  identifier: recreate_rules
+                  spec:
+                    shell: Sh
+                    image: amazon/aws-cli:2.23.4
+                    envVariables:
+                      AWS_ACCOUNT_ID: <+secrets.getValue("proj-ds-aws-account-id")>
+                      AWS_ACCESS_KEY_ID: <+secrets.getValue("proj-ds-aws-access-key-id")>
+                      AWS_SECRET_ACCESS_KEY: <+secrets.getValue("proj-ds-aws-secret-access-key")>
+                      AWS_REGION: <+secrets.getValue("proj-ds-aws-region")>
+                    command: |-
+                      set -euo pipefail
+
+                      LB_NAME="<+pipeline.variables.LB_NAME>"
+                      LISTENER_ARN_INPUT="<+pipeline.variables.LISTENER_ARN>"
+                      S3_BUCKET="<+pipeline.variables.S3_BUCKET>"
+                      LISTENERS_KEY="<+pipeline.variables.LISTENERS_KEY>"
+                      RULES_KEY="<+pipeline.variables.RULES_KEY>"
+
+                      yum install -y jq >/dev/null
+
+                      echo "Downloading listener/rule definitions from s3://${S3_BUCKET}/..."
+                      aws s3 cp "s3://${S3_BUCKET}/${LISTENERS_KEY}" /tmp/listeners.json
+                      aws s3 cp "s3://${S3_BUCKET}/${RULES_KEY}" /tmp/rules.json
+
+                      if [ -z "$LB_NAME" ] || [ "$LB_NAME" = "null" ] || [ "$LB_NAME" = "'null'" ]; then
+                        LB_NAME=$(jq -r '.loadBalancerName // empty' /tmp/listeners.json)
+                      fi
+
+                      echo "Resolving ALB ARN for ${LB_NAME}..."
+                      LB_ARN=$(aws elbv2 describe-load-balancers \
+                        --names "$LB_NAME" \
+                        --query 'LoadBalancers[0].LoadBalancerArn' \
+                        --output text)
+
+                      if [ -z "$LB_ARN" ] || [ "$LB_ARN" = "None" ]; then
+                        echo "Could not find load balancer named $LB_NAME"
+                        exit 1
+                      fi
+
+                      if [ -n "$LISTENER_ARN_INPUT" ] && [ "$LISTENER_ARN_INPUT" != "null" ] && [ "$LISTENER_ARN_INPUT" != "'null'" ]; then
+                        LISTENER_ARN="$LISTENER_ARN_INPUT"
+                      else
+                        LISTENER_ARN=$(jq -r '.listeners[0].listenerArn // empty' /tmp/listeners.json)
+                        if [ -z "$LISTENER_ARN" ]; then
+                          LISTENER_ARN=$(aws elbv2 describe-listeners \
+                            --load-balancer-arn "$LB_ARN" \
+                            --query 'Listeners[?Protocol==`HTTP` && Port==`80`].ListenerArn' \
+                            --output text | head -n1)
+                        fi
+                      fi
+
+                      if [ -z "$LISTENER_ARN" ] || [ "$LISTENER_ARN" = "None" ]; then
+                        echo "No HTTP:80 listener found for $LB_NAME"
+                        exit 1
+                      fi
+
+                      echo "Using listener: $LISTENER_ARN"
+
+                      # Delete all non-default rules to start clean.
+                      RULE_ARNS=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN" --query 'Rules[?Priority!=`default`].RuleArn' --output text)
+                      if [ -n "$RULE_ARNS" ] && [ "$RULE_ARNS" != "None" ]; then
+                        echo "Deleting existing rules: $RULE_ARNS"
+                        for r in $RULE_ARNS; do
+                          aws elbv2 delete-rule --rule-arn "$r"
+                        done
+                      fi
+
+                      resolve_tg_by_name() {
+                        local name="$1"
+                        if [ -z "$name" ] || [ "$name" = "null" ] || [ "$name" = "'null'" ]; then
+                          echo ""
+                          return
+                        fi
+                        if echo "$name" | grep -q '^arn:'; then
+                          echo "$name"
+                          return
+                        fi
+                        aws elbv2 describe-target-groups \
+                          --names "$name" \
+                          --query 'TargetGroups[0].TargetGroupArn' \
+                          --output text 2>/dev/null || true
+                      }
+
+                      create_forward_rule() {
+                        local prio="$1"
+                        local tg="$2"
+                        shift 2
+                        local paths=("$@")
+                        if [ -z "$tg" ] || [ "$tg" = "null" ] || [ "$tg" = "'null'" ]; then
+                          echo "Skipping forward rule ${prio}; target group not provided."
+                          return
+                        fi
+                        aws elbv2 create-rule \
+                          --listener-arn "$LISTENER_ARN" \
+                          --priority "$prio" \
+                          --conditions "Field=path-pattern,Values=$(IFS=,; echo "${paths[*]}")" \
+                          --actions Type=forward,TargetGroupArn="$tg" >/dev/null
+                        echo "Created forward rule priority ${prio} -> $tg for paths: ${paths[*]}"
+                      }
+
+                      create_redirect_rule() {
+                        local prio="$1"
+                        local target_path="$2"
+                        shift 2
+                        local paths=("$@")
+                        aws elbv2 create-rule \
+                          --listener-arn "$LISTENER_ARN" \
+                          --priority "$prio" \
+                          --conditions "Field=path-pattern,Values=$(IFS=,; echo "${paths[*]}")" \
+                          --actions Type=redirect,RedirectConfig="[{Protocol=HTTP,Port=80,Host=#{host},Path=${target_path},Query=#{query},StatusCode=HTTP_302}]" >/dev/null
+                        echo "Created redirect rule priority ${prio} -> ${target_path} for paths: ${paths[*]}"
+                      }
+
+                      # Redirects for swagger/docs from JSON
+                      jq -c '.redirects[]' /tmp/rules.json | while read -r r; do
+                        prio=$(echo "$r" | jq -r '.priority')
+                        target_path=$(echo "$r" | jq -r '.targetPath')
+                        paths=$(echo "$r" | jq -r '.paths | join(",")')
+                        create_redirect_rule "$prio" "$target_path" "$paths"
+                      done
+
+                      # Forwards from JSON
+                      jq -c '.forwards[]' /tmp/rules.json | while read -r f; do
+                        prio=$(echo "$f" | jq -r '.priority')
+                        paths=$(echo "$f" | jq -r '.paths | join(",")')
+                        tg_name=$(echo "$f" | jq -r '.targetGroupName')
+                        tg_arn="$(resolve_tg_by_name "$tg_name")"
+                        create_forward_rule "$prio" "$tg_arn" "$paths"
+                      done
+
+    - stage:
+        name: inspect-rules
+        identifier: inspect_rules
+        type: CI
+        delegateSelectors:
+          - harness-docker-delegate-demoskills
+        spec:
+          cloneCodebase: false
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Docker
+            spec:
+              connectorRef: account.harnessImage
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: show-listeners-and-rules
+                  identifier: show_listeners_and_rules
+                  spec:
+                    shell: Sh
+                    image: amazon/aws-cli:2.23.4
+                    envVariables:
+                      AWS_ACCOUNT_ID: <+secrets.getValue("proj-ds-aws-account-id")>
+                      AWS_ACCESS_KEY_ID: <+secrets.getValue("proj-ds-aws-access-key-id")>
+                      AWS_SECRET_ACCESS_KEY: <+secrets.getValue("proj-ds-aws-secret-access-key")>
+                      AWS_REGION: <+secrets.getValue("proj-ds-aws-region")>
+                    command: |-
+                      set -euo pipefail
+
+                      LB_NAME="<+pipeline.variables.LB_NAME>"
+                      LISTENER_ARN_INPUT="<+pipeline.variables.LISTENER_ARN>"
+
+                      yum install -y jq >/dev/null
+
+                      LB_ARN=$(aws elbv2 describe-load-balancers \
+                        --names "$LB_NAME" \
+                        --query 'LoadBalancers[0].LoadBalancerArn' \
+                        --output text)
+
+                      if [ -n "$LISTENER_ARN_INPUT" ] && [ "$LISTENER_ARN_INPUT" != "null" ] && [ "$LISTENER_ARN_INPUT" != "'null'" ]; then
+                        LISTENERS_JSON=$(aws elbv2 describe-listeners --listener-arns "$LISTENER_ARN_INPUT")
+                      else
+                        LISTENERS_JSON=$(aws elbv2 describe-listeners --load-balancer-arn "$LB_ARN")
+                      fi
+
+                      echo "Listeners:"
+                      echo "$LISTENERS_JSON" | jq '.Listeners[] | {ListenerArn, Port, Protocol, DefaultActions}'
+
+                      echo "Rules:"
+                      echo "$LISTENERS_JSON" | jq -r '.Listeners[].ListenerArn' | while read -r L; do
+                        [ -z "$L" ] && continue
+                        echo "Listener: $L"
+                        aws elbv2 describe-rules --listener-arn "$L" | jq '.Rules[] | {RuleArn, Priority, Conditions, Actions}'
+                      done
