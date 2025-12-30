@@ -30,14 +30,15 @@ pipeline:
       type: String
       value: demoskills-001-ecs
       description: Target ECS cluster.
-    - name: ECS_SERVICES_CSV
-      type: String
-      value: <+variable.ECS_SERVICES_CSV>
-      description: Comma-separated ECS service names (project variable ECS_SERVICES_CSV).
     - name: DESIRED_COUNT
       type: Number
       value: 1
       description: Desired task count after deploy.
+    - name: WAIT_FOR_STABLE
+      type: String
+      value: <+input>.allowedValues("true","false")
+      default: "true"
+      description: Set to false to skip ecs wait services-stable (can be slow).
 
   stages:
     - stage:
@@ -79,13 +80,13 @@ pipeline:
                       IMAGE_TAG="<+pipeline.variables.IMAGE_TAG>"
                       BUILD_REF="<+pipeline.variables.BUILD_REF>"
                       CLUSTER="<+pipeline.variables.ECS_CLUSTER>"
-                      SERVICES_CSV_RAW="<+pipeline.variables.ECS_SERVICES_CSV>"
+                      WAIT_FOR_STABLE_RAW="<+pipeline.variables.WAIT_FOR_STABLE>"
                       DESIRED_COUNT_RAW="<+pipeline.variables.DESIRED_COUNT>"
                       ECR_REPO="demoskills"
 
-                      # Derive names; prefer project variable list for real service names.
+                      # Derive names; default to "<service>-svc".
                       SERVICE_KEY=$(echo "$SERVICE_NAME" | tr '[:upper:]' '[:lower:]')
-                      ECS_SERVICE=""
+                      ECS_SERVICE="${SERVICE_KEY}-svc"
                       ECS_TASK_FAMILY="${SERVICE_KEY}-task"
                       CONTAINER_NAME="${SERVICE_KEY}"
 
@@ -117,23 +118,7 @@ pipeline:
 
                       echo "Desired count: $DESIRED_COUNT"
 
-                      # Try to derive from ECS_SERVICES_CSV (project variable) first; each entry starts with the lower-case service name.
-                      if [ -n "${SERVICES_CSV_RAW:-}" ] && [ "$SERVICES_CSV_RAW" != "null" ]; then
-                        IFS=',' read -r -a SERVICES_FROM_VAR <<< "$SERVICES_CSV_RAW"
-                        for svc in "${SERVICES_FROM_VAR[@]}"; do
-                          svc_trimmed="$(echo "$svc" | xargs)"
-                          if echo "$svc_trimmed" | grep -qi "^${SERVICE_KEY}"; then
-                            ECS_SERVICE="$svc_trimmed"
-                            echo "Mapped service from ECS_SERVICES_CSV: $ECS_SERVICE"
-                            break
-                          fi
-                        done
-                      fi
-
-                      # Fall back to default naming if CSV did not match.
-                      if [ -z "$ECS_SERVICE" ]; then
-                        ECS_SERVICE="${SERVICE_KEY}-svc"
-                      fi
+                      echo "Using ECS service name: $ECS_SERVICE"
 
                       CURRENT_TASK_DEF_ARN=$(
                         aws ecs describe-services \
@@ -216,8 +201,12 @@ pipeline:
                         --task-definition "$NEW_TASK_DEF_ARN" \
                         --desired-count "$DESIRED_COUNT"
 
-                      echo "Waiting for service to stabilize..."
-                      aws ecs wait services-stable --cluster "$CLUSTER" --services "$ECS_SERVICE"
+                      if echo "${WAIT_FOR_STABLE_RAW:-true}" | tr '[:upper:]' '[:lower:]' | grep -q '^true'; then
+                        echo "Waiting for service to stabilize..."
+                        aws ecs wait services-stable --cluster "$CLUSTER" --services "$ECS_SERVICE"
+                      else
+                        echo "Skipping ecs wait (WAIT_FOR_STABLE=$WAIT_FOR_STABLE_RAW)."
+                      fi
 
                       printf '\033[32m%s\033[0m\n' "Deployment complete. Service $ECS_SERVICE is running image $IMAGE"
                       printf '\033[32m------------------------------------------------------------\033[0m\n'
