@@ -1,0 +1,88 @@
+# Utility pipeline to inspect ALB listeners and rules via AWS CLI.
+pipeline:
+  name: DS - Inspect ALB Rules
+  identifier: DS_Inspect_ALB_Rules
+  projectIdentifier: demo_skills_project
+  orgIdentifier: default
+  tags: {}
+
+  variables:
+    - name: LB_NAME
+      type: String
+      value: <+input>
+      description: ALB name (e.g., demoskills-alb)
+      required: true
+    - name: LISTENER_ARN
+      type: String
+      value: <+input>
+      description: Optional listener ARN (leave blank to list all listeners for the ALB)
+      required: false
+
+  stages:
+    - stage:
+        name: inspect-alb
+        identifier: inspect_alb
+        type: CI
+        delegateSelectors:
+          - harness-docker-delegate-demoskills
+        spec:
+          cloneCodebase: false
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Docker
+            spec:
+              connectorRef: account.harnessImage
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: fetch-listeners-and-rules
+                  identifier: fetch_listeners_and_rules
+                  spec:
+                    shell: Sh
+                    image: amazon/aws-cli:2.23.4
+                    envVariables:
+                      AWS_ACCOUNT_ID: <+secrets.getValue("proj-ds-aws-account-id")>
+                      AWS_ACCESS_KEY_ID: <+secrets.getValue("proj-ds-aws-access-key-id")>
+                      AWS_SECRET_ACCESS_KEY: <+secrets.getValue("proj-ds-aws-secret-access-key")>
+                      AWS_REGION: <+secrets.getValue("proj-ds-aws-region")>
+                    command: |-
+                      set -euo pipefail
+
+                      LB_NAME="<+pipeline.variables.LB_NAME>"
+                      LISTENER_ARN_INPUT="<+pipeline.variables.LISTENER_ARN>"
+
+                      yum install -y jq >/dev/null
+
+                      echo "Looking up load balancer ARN for ${LB_NAME}..."
+                      LB_ARN=$(aws elbv2 describe-load-balancers \
+                        --names "$LB_NAME" \
+                        --query 'LoadBalancers[0].LoadBalancerArn' \
+                        --output text)
+
+                      if [ -z "$LB_ARN" ] || [ "$LB_ARN" = "None" ]; then
+                        echo "Could not find load balancer named $LB_NAME"
+                        exit 1
+                      fi
+
+                      if [ -n "$LISTENER_ARN_INPUT" ] && [ "$LISTENER_ARN_INPUT" != "null" ] && [ "$LISTENER_ARN_INPUT" != "'null'" ]; then
+                        LISTENERS_JSON=$(aws elbv2 describe-listeners --listener-arns "$LISTENER_ARN_INPUT")
+                      else
+                        LISTENERS_JSON=$(aws elbv2 describe-listeners --load-balancer-arn "$LB_ARN")
+                      fi
+
+                      echo "$LISTENERS_JSON" | jq '.Listeners[] | {ListenerArn, Port, Protocol, DefaultActions}' | tee /tmp/listeners.out
+
+                      echo "Collecting rules..." | tee /tmp/rules.out
+                      echo "$LISTENERS_JSON" | jq -r '.Listeners[].ListenerArn' | while read -r L; do
+                        [ -z "$L" ] && continue
+                        {
+                          echo "Rules for listener: $L"
+                          aws elbv2 describe-rules --listener-arn "$L" | jq '.Rules[] | {RuleArn, Priority, Conditions, Actions}'
+                        } | tee -a /tmp/rules.out
+                      done
+
+                      echo "== Listeners ==" && cat /tmp/listeners.out
+                      echo "== Rules ==" && cat /tmp/rules.out

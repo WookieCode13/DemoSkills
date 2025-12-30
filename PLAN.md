@@ -22,7 +22,9 @@ Main goal is to build a demo portfolio project that showcases my resume skills. 
 
 - [x] Create C# Employee API project
 - [x] Create Python Company API project
-- [ ] Create C# Tax Calculator API project
+- [ ] Create C# Tax Calculator API project   need branch! 
+- [ ] Create C# Pay API project
+- [ ] Create Python Reports API project
 - [ ] Add Swagger / OpenAPI documentation
 - [ ] Add sample endpoints and tests
 - [ ] Add workspaces for each testable sub project.

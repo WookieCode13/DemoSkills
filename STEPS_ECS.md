@@ -91,6 +91,7 @@ Note: using 1 repo with tags, again for a quick setup, if i have to tear down AW
      - Listeners: HTTP 80 (add HTTPS 443 later with cert).
      - Subnets: pick two public subnets; SG: new SG allowing 80/443 from 0.0.0.0/0.
    - Wire listeners to target groups:
+     - NOTE: there is a harness pipeline to add the rules to the listener. http 80.  
      - Default action: forward to EmployeeAPI TG (8080) or add path rules like `/employeeapi` → TG8080, `/companyapi` → TG8081.
    - ECS service updates:
      - ECS > my ecs > my servcie > update > down to load balancing
