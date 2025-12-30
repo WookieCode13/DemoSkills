@@ -164,13 +164,14 @@ pipeline:
                         local target_path="$2"
                         shift 2
                         local paths=("$@")
-                        # Note: escape '#' so the shell does not treat it as a comment.
-                        local action="Type=redirect,RedirectConfig={Protocol=HTTP,Port=80,Host=\\#\\{host\\},Path=${target_path},Query=\\#\\{query\\},StatusCode=HTTP_302}"
+                        local action_json="[{'Type':'redirect','RedirectConfig':{'Protocol':'HTTP','Port':'80','Host':'#{host}','Path':'${target_path}','Query':'#{query}','StatusCode':'HTTP_302'}}]"
+                        # AWS CLI expects double quotes; swap single quotes to double at runtime to avoid shell escaping issues.
+                        action_json=$(echo "$action_json" | sed "s/'/\"/g")
                         aws elbv2 create-rule \
                           --listener-arn "$LISTENER_ARN" \
                           --priority "$prio" \
                           --conditions "Field=path-pattern,Values=$(IFS=,; echo "${paths[*]}")" \
-                          --actions "$action" >/dev/null
+                          --actions "$action_json" >/dev/null
                         echo "Created redirect rule priority ${prio} -> ${target_path} for paths: ${paths[*]}"
                       }
 
