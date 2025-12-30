@@ -164,7 +164,8 @@ pipeline:
                         local target_path="$2"
                         shift 2
                         local paths=("$@")
-                        local action="Type=redirect,RedirectConfig={\"Protocol\":\"HTTP\",\"Port\":\"80\",\"Host\":\"#{host}\",\"Path\":\"${target_path}\",\"Query\":\"#{query}\",\"StatusCode\":\"HTTP_302\"}"
+                        # Note: escape '#' so the shell does not treat it as a comment.
+                        local action="Type=redirect,RedirectConfig={Protocol=HTTP,Port=80,Host=\\#\\{host\\},Path=${target_path},Query=\\#\\{query\\},StatusCode=HTTP_302}"
                         aws elbv2 create-rule \
                           --listener-arn "$LISTENER_ARN" \
                           --priority "$prio" \
