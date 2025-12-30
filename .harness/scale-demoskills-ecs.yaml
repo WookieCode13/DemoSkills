@@ -20,10 +20,10 @@ pipeline:
       type: String
       value: demoskills-001-ecs
       description: Target ECS cluster.
-    - name: SERVICES
+    - name: SERVICE_NAMES
       type: String
-      value: <+variable.ECS_SERVICES_CSV>
-      description: Comma-separated ECS task service names to scale (project variable ECS_SERVICES_CSV).
+      value: <+input>
+      description: Comma-separated short service names (e.g., employeeapi,companyapi,payapi,taxcalculatorapi,reportapi).
 
   stages:
     - stage:
@@ -60,7 +60,7 @@ pipeline:
 
                       CLUSTER="<+pipeline.variables.ECS_CLUSTER>"
                       DESIRED_RAW="<+pipeline.variables.DESIRED_COUNT>"
-                      SERVICES_CSV="<+pipeline.variables.SERVICES>"
+                      SERVICE_NAMES_RAW="<+pipeline.variables.SERVICE_NAMES>"
 
                       DESIRED="${DESIRED_RAW%.*}"
                       if [ -z "$DESIRED" ]; then
@@ -68,35 +68,63 @@ pipeline:
                         exit 1
                       fi
 
-                      echo "SERVICES_CSV raw: '${SERVICES_CSV}'"
+                      echo "SERVICE_NAMES raw: '${SERVICE_NAMES_RAW}'"
 
-                      # Guard against missing/placeholder services (null/"").
-                      if [ -z "$SERVICES_CSV" ] || [ "$SERVICES_CSV" = "null" ] || [ "$SERVICES_CSV" = "\"\"" ]; then
-                        echo "No services provided in SERVICES variable (ECS_SERVICES_CSV project variable)."
+                      if [ -z "$SERVICE_NAMES_RAW" ] || [ "$SERVICE_NAMES_RAW" = "null" ] || [ "$SERVICE_NAMES_RAW" = "\"\"" ]; then
+                        echo "No service names provided."
                         exit 1
                       fi
 
-                      IFS=',' read -r -a SERVICES <<< "$SERVICES_CSV"
-                      if [ "${#SERVICES[@]}" -eq 0 ]; then
-                        echo "No services provided in SERVICES variable."
+                      IFS=',' read -r -a SERVICE_NAMES <<< "$SERVICE_NAMES_RAW"
+                      if [ "${#SERVICE_NAMES[@]}" -eq 0 ]; then
+                        echo "No service names provided."
                         exit 1
                       fi
+
+                      resolve_service() {
+                        local key="$1"
+                        if [ -z "$key" ]; then
+                          echo ""
+                          return
+                        fi
+                        local default="${key}-svc"
+                        local found=""
+                        found=$(aws ecs describe-services \
+                          --cluster "$CLUSTER" \
+                          --services "$default" \
+                          --query 'services[0].serviceName' \
+                          --output text 2>/dev/null)
+                        if [ "$found" = "None" ] || [ -z "$found" ]; then
+                          found=$(aws ecs list-services \
+                            --cluster "$CLUSTER" \
+                            --query 'serviceArns[]' \
+                            --output text \
+                            | tr '\t' '\n' \
+                            | grep "$key" \
+                            | head -n 1 \
+                            | awk -F'/' '{print $NF}')
+                        fi
+                        echo "$found"
+                      }
 
                       echo "Scaling services on cluster $CLUSTER to desired count: $DESIRED"
-                      for svc in "${SERVICES[@]}"; do
-                        svc_trimmed="$(echo "$svc" | xargs)"
-                        if [ -z "$svc_trimmed" ] || [ "$svc_trimmed" = "null" ] || [ "$svc_trimmed" = "\"\"" ]; then
+                      for name in "${SERVICE_NAMES[@]}"; do
+                        svc_key="$(echo "$name" | xargs | tr '[:upper:]' '[:lower:]')"
+                        [ -z "$svc_key" ] && continue
+                        svc_name=$(resolve_service "$svc_key")
+                        if [ -z "$svc_name" ]; then
+                          echo "  Skipping $svc_key: not found"
                           continue
                         fi
-                        echo "Updating $svc_trimmed ..."
+                        echo "Updating $svc_name ..."
                         aws ecs update-service \
                           --cluster "$CLUSTER" \
-                          --service "$svc_trimmed" \
-                          --desired-count "$DESIRED" >/tmp/scale-${svc_trimmed}.json
+                          --service "$svc_name" \
+                          --desired-count "$DESIRED" >/tmp/scale-${svc_name}.json
                         echo "  OK"
                       done
 
                       echo "Done. Updated services:"
-                      printf '  - %s\n' "${SERVICES[@]}"
+                      printf '  - %s\n' "${SERVICE_NAMES[@]}"
                       printf '\033[32m%s\033[0m\n' "Scaling complete."
                       printf '\033[32m------------------------------------------------------------\033[0m\n'
