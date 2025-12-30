@@ -9,12 +9,13 @@ pipeline:
   identifier: DS_Apply_ALB_Rules
   projectIdentifier: demo_skills_project
   orgIdentifier: default
+  description: Reset the ALB listener routing rules
   tags: {}
 
   variables:
     - name: LB_NAME
       type: String
-      value: <+input>
+      value: <+input>.default(demoskills-alb)
       description: ALB name (e.g., demoskills-alb)
       required: true
     - name: LISTENER_ARN
@@ -163,11 +164,12 @@ pipeline:
                         local target_path="$2"
                         shift 2
                         local paths=("$@")
+                        local action="Type=redirect,RedirectConfig={\"Protocol\":\"HTTP\",\"Port\":\"80\",\"Host\":\"#{host}\",\"Path\":\"${target_path}\",\"Query\":\"#{query}\",\"StatusCode\":\"HTTP_302\"}"
                         aws elbv2 create-rule \
                           --listener-arn "$LISTENER_ARN" \
                           --priority "$prio" \
                           --conditions "Field=path-pattern,Values=$(IFS=,; echo "${paths[*]}")" \
-                          --actions Type=redirect,RedirectConfig="[{Protocol=HTTP,Port=80,Host=#{host},Path=${target_path},Query=#{query},StatusCode=HTTP_302}]" >/dev/null
+                          --actions "$action" >/dev/null
                         echo "Created redirect rule priority ${prio} -> ${target_path} for paths: ${paths[*]}"
                       }
 
