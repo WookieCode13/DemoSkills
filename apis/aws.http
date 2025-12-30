@@ -35,12 +35,15 @@ GET http://longranch.com/companies/openapi.json
 
 ### --- Pay ---
 GET http://longranch.com/api/v1/pay/health
+###
 GET http://longranch.com/pay/swagger
 
 ### --- TaxCalculator ---
 GET http://longranch.com/api/v1/taxes/health
+###
 GET http://longranch.com/taxes/swagger
 
 ### --- Report ---
 GET http://longranch.com/api/v1/reports/health
+###
 GET http://longranch.com/reports/docs

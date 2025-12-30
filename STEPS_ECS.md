@@ -71,7 +71,10 @@ Note: using 1 repo with tags, again for a quick setup, if i have to tear down AW
    - Launch type: Fargate; Task definition: `employeeapi-task`; Service name: `employeeapi-svc`.
    - Desired count: 0 or 1 (set 0 if no real image yet).
    - Networking: default VPC, pick two of the 6 default public subnets, assign public IP = ENABLED, security group = just `demo-employeeapi-sg`.
-   - No load balancer for now; add ALB later when image is ready.
+   - (intial setup - No load balancer for now, else step 8 nis done then) 
+     - add ALB later when image is ready (now or come back and add alb later).
+     - use existing listener
+     - use existing TG (target group)
 7. **Ready for Harness**
    - Capture: region, cluster `demoskills-001-ecs`, task family `employeeapi-task`, service `employeeapi-svc`, roles, log group, and ECR repo URL.
    - Decide registry (ECR vs external). Harness will update the task definition image, set desired count, and add ALB later if needed.

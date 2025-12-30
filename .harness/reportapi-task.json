@@ -6,16 +6,16 @@
             "environment": [
                 {
                     "name": "BUILD_REF",
-                    "value": "v0.2.3"
+                    "value": "main"
                 },
                 {
                     "name": "BUILD_BRANCH",
-                    "value": "v0.2.3"
+                    "value": "main"
                 }
             ],
             "environmentFiles": [],
             "essential": true,
-            "image": "356171277691.dkr.ecr.us-east-1.amazonaws.com/demoskills:ReportAPI-v0.2.3.b28",
+            "image": "356171277691.dkr.ecr.us-east-1.amazonaws.com/demoskills:ReportAPI-main.b34",
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
