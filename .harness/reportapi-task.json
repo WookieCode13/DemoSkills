@@ -1,0 +1,60 @@
+{
+    "family": "reportapi-task",
+    "containerDefinitions": [
+        {
+            "cpu": 0,
+            "environment": [
+                {
+                    "name": "BUILD_REF",
+                    "value": "v0.2.3"
+                },
+                {
+                    "name": "BUILD_BRANCH",
+                    "value": "v0.2.3"
+                }
+            ],
+            "environmentFiles": [],
+            "essential": true,
+            "image": "356171277691.dkr.ecr.us-east-1.amazonaws.com/demoskills:ReportAPI-v0.2.3.b28",
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/reportapi-task",
+                    "awslogs-create-group": "true",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "ecs"
+                },
+                "secretOptions": []
+            },
+            "mountPoints": [],
+            "name": "reportapi",
+            "portMappings": [
+                {
+                    "appProtocol": "http",
+                    "containerPort": 8084,
+                    "hostPort": 8084,
+                    "name": "reportapi-8084-tcp",
+                    "protocol": "tcp"
+                }
+            ],
+            "systemControls": [],
+            "ulimits": [],
+            "volumesFrom": []
+        }
+    ],
+    "taskRoleArn": "arn:aws:iam::356171277691:role/demoskillsapi-task-role",
+    "executionRoleArn": "arn:aws:iam::356171277691:role/demoskillsapi-ecs-execution",
+    "networkMode": "awsvpc",
+    "volumes": [],
+    "placementConstraints": [],
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "512",
+    "memory": "1024",
+    "runtimePlatform": {
+        "cpuArchitecture": "X86_64",
+        "operatingSystemFamily": "LINUX"
+    },
+    "enableFaultInjection": false
+}
