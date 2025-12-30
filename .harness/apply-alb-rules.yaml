@@ -189,7 +189,11 @@ pipeline:
                         paths=$(echo "$f" | jq -r '.paths | join(",")')
                         tg_name=$(echo "$f" | jq -r '.targetGroupName')
                         tg_arn="$(resolve_tg_by_name "$tg_name")"
-                        create_forward_rule "$prio" "$tg_arn" "$paths"
+                        if [ -z "$tg_arn" ] || [ "$tg_arn" = "None" ]; then
+                          echo "Skipping forward rule ${prio}; target group '${tg_name}' not found/resolved."
+                        else
+                          create_forward_rule "$prio" "$tg_arn" "$paths"
+                        fi
                       done
 
     - stage:
