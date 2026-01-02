@@ -113,6 +113,26 @@ Note: using 1 repo with tags, again for a quick setup, if i have to tear down AW
    - Route 53 > Hosted Zones > create zone > 2 records NS SOA > create new record > Alias is there. alias to ALB.
       - TYPE:a, BLANK (sub here future), alias: yes, Route traffic to: target my Alb (app load bal, us-east, my alb) , policy simple
 
+---
+
+## Quick AWS Cheatsheet (in order)
+
+- IAM (once): IAM > Roles > Create (ECS task, ECS execution); attach `AmazonECSTaskExecutionRolePolicy`; add `logs:Create*`/`logs:Put*` if missing. Name however you like.
+- ECR (once): ECR > Repositories > Create repo (e.g., `apps`) private, scan on push.
+- VPC/Subnets (once): ensure default VPC with public subnets that auto-assign public IPv4.
+- Security Groups (once):
+  - ALB SG: allow 80/443 from 0.0.0.0/0.
+  - Service SG: allow app ports (8080/8081/8082/8083/8084) from ALB SG; outbound all.
+- CloudWatch Logs (once): create log groups per API, e.g., `/ecs/xyz_api-task`.
+- ECS Cluster (once): ECS > Clusters > Create one cluster (Fargate, networking only).
+- Target Groups (per API): EC2 > Target Groups > Create (type IP, HTTP, port 808x), VPC = default, health path `/api/v1/xyz/health`.
+- ALB (once): EC2 > Load Balancers > Create ALB (internet-facing, HTTP 80, ALB SG, public subnets); add rules to forward to each TG.
+- Task Definition (per API): ECS > Task definitions > Create FARGATE family `xyz_api-task`, CPU 0.5 vCPU / 1 GB, roles above, container `xyz_api`, port 808x, logs to matching group.
+- Service (per API): ECS > Cluster > Create service
+  - Launch type: Fargate; Task def: `xyz_api-task`; Service name: `xyz_api-svc`.
+  - Desired count: 1; Networking: awsvpc, assign public IP, service SG; ALB: attach TG on port 808x.
+- Verify: TG targets healthy; hit `http://<ALB-DNS>/api/v1/xyz/health` and swagger/docs paths.
+
 ## Phase 2 - Harness Connector Prep (before pipelines)
 
 Goal: set up the Harness project, delegate, connectors, and validate ECR/ECS access before building real pipelines. (I created connectors at the account scope; could also scope to project.)

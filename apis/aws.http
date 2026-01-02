@@ -15,6 +15,7 @@ GET http://demoskills-alb-1952058927.us-east-1.elb.amazonaws.com/api/v1/employee
 ### swagger
 GET http://demoskills-alb-1952058927.us-east-1.elb.amazonaws.com/employees/swagger
 
+
 ### --- Company ---
 ### 8081 is blocked on longranch.com
 GET http://longranch.com:8081/api/v1/companies/health
@@ -33,17 +34,22 @@ GET http://longranch.com/companies/ops
 ### 
 GET http://longranch.com/companies/openapi.json
 
+
 ### --- Pay ---
 GET http://longranch.com/api/v1/pay/health
 ###
 GET http://longranch.com/pay/swagger
+
 
 ### --- TaxCalculator ---
 GET http://longranch.com/api/v1/taxes/health
 ###
 GET http://longranch.com/taxes/swagger
 
+
 ### --- Report ---
 GET http://longranch.com/api/v1/reports/health
 ###
 GET http://longranch.com/reports/docs
+### doc (py swagger)
+GET http://longranch.com/reports/swagger

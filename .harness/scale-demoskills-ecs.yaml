@@ -22,7 +22,7 @@ pipeline:
       description: Target ECS cluster.
     - name: SERVICE_NAMES
       type: String
-      value: <+input>
+      value: <+input>.default(employeeapi,companyapi,payapi,taxcalculatorapi,reportapi)
       description: Comma-separated short service names (e.g., employeeapi,companyapi,payapi,taxcalculatorapi,reportapi).
 
   stages:
