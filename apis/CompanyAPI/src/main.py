@@ -32,11 +32,8 @@ class CompanyCreateRequest(BaseModel):
     industry: str | None = Field(default=None, examples=["Demo Skills 123"])
 
 
-_companies: dict[int, Company] = {
-    1: Company(id=1, name="Demo Skills LLC", industry="Demo Skills 123"),
-    2: Company(id=2, name="Demo Skills Co", industry="Software"),
-}
-_next_company_id = 3
+_companies: dict[int, Company] = {}
+_next_company_id = 1
 
 
 @app.get("/", tags=["ops"])
@@ -68,6 +65,7 @@ def health() -> HealthResponse:
     summary="List companies",
 )
 def list_companies() -> list[Company]:
+    # TODO: replace in-memory stub with real data source.
     return sorted(_companies.values(), key=lambda c: c.id)
 
 
