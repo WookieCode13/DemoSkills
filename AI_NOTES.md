@@ -58,3 +58,12 @@ Goal: have Harness deploy to AWS and also run a teardown pipeline.
 - Added top-level `/health` and `/swagger` (redirects to `/docs`) in `apis/CompanyAPI/src/main.py` to align with ALB/TG probes.
 - After redeploying the image, set the Company TG health check to `/health` (or `/api/v1/companies/health`) and confirm container port 8081 is used.
 - Verify ALB listener rule maps company path to the 8081 TG; keep service SG allowing 8081 from ALB SG only; ALB SG allows 80/443 from internet.
+
+---
+
+## 2026-01-05 - Multi-API + Ops Updates
+- Added PayAPI/TaxCalculatorAPI (C#) and ReportAPI (FastAPI) with health + Swagger; enforced lowercase routes for Swagger; kept controller `[controller]` routes.
+- Deploy pipeline now maps build steps by service name (no manual build type); scale pipeline derives `*-svc` names from short keys; ALB apply/inspect pipelines added (rules from S3 JSON).
+- Switched Python configs to `.env.example` with shared `DATABASE_URL` placeholder; .NET APIs have `appsettings.Development.json` stubs with the same TODO; cleared stub data in Company/Report APIs and added TODOs.
+- ALB rules: fixed report docs loop by cleaning S3 JSON; services standardized to `*-svc` naming; tags: v0.3.1 created after main merge.
+- Docs refreshed: STRUCTURE shows ALB (API Gateway future) and ReportAPI; TECH_STACK updated to Python 3.12-slim, ALB/ECS/ECR/RDS, feature branches.
