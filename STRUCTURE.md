@@ -3,62 +3,61 @@
 ## System Overview
 ```mermaid
 graph TD
-    A[Client] --> B[API Gateway]
-    B --> C1[REST APIs]
-    B --> C2[Lambda Functions]
-    C1 --> D[Database]
-    C2 --> D
+    A[Client] --> B[ALB (API Gateway future)]
+    B --> C1[ECS Services]
+    C1 --> D[PostgreSQL]
 ```
 
 ## Folder Structure
+```
 DemoSkills/
-│
-├── README.md           # Project overview and status
-├── PROJECT_PLAN.md     # Development roadmap
-├── TECH_STACK.md      # Technology details
-├── SETUP_NOTES.md     # Environment setup
-├── AI_NOTES.md        # AI development guide
-│
-├── /apis/             # REST API Projects
-│   ├── /TaxCalculatorAPI/
-│   │   ├── /src/
-│   │   └── /tests/
-│   ├── /EmployeeAPI/
-│   │   ├── /src/
-│   │   └── /tests/
-│   ├── /CompanyAPI/
-│   │   ├── /src/
-│   │   └── /tests/
-│   └── /PayAPI/
-│       ├── /src/
-│       └── /tests/
-│
-├── /lambdas/          # Serverless Functions
-│   ├── /TimeClockLambda/
-│   │   ├── /src/
-│   │   └── /tests/
-│   └── /VacationLambda/
-│       ├── /src/
-│       └── /tests/
-│
-├── /docker/           # Containerization
-│   ├── /api-base/     # Base images
-│   └── /services/     # Service-specific
-│
-├── /harness/          # (Optional) CI/CD Configuration
-│   ├── /pipelines/
-│   ├── /connectors/
-│   └── /templates/
-│
-└── /infra/            # (Optional) infrastructure notes/scripts
+  README.md              # Project overview and status
+  PROJECT_PLAN.md        # Development roadmap
+  TECH_STACK.md          # Technology details
+  SETUP_NOTES.md         # Environment setup
+  AI_NOTES.md            # AI development guide
+
+  apis/                  # REST API projects
+    EmployeeAPI/
+      src/
+      tests/
+    CompanyAPI/
+      src/
+      tests/
+    PayAPI/
+      src/
+      tests/
+    TaxCalculatorAPI/
+      src/
+      tests/
+    ReportAPI/
+      src/
+      tests/
+
+  lambdas/               # Serverless functions
+    TimeClockLambda/
+      src/
+      tests/
+    VacationLambda/
+      src/
+      tests/
+
+  docker/                # Containerization
+    api-base/            # Base images
+    services/            # Service-specific
+
+  .harness/              # CI/CD pipelines and helpers
+  infra/                 # Optional infrastructure notes/scripts
+```
 
 ## Component Details
 
 ### API Services
-- TaxCalculatorAPI: Tax computation and rules
 - EmployeeAPI: Employee management
 - CompanyAPI: Company information
 - PayAPI: Payroll processing
+- TaxCalculatorAPI: Tax computation and rules
+- ReportAPI: Reporting and analytics
 
 ### Lambda Functions
 - TimeClockLambda: Time tracking
@@ -66,13 +65,13 @@ DemoSkills/
 
 ### Infrastructure
 - Docker: Container definitions
-- Harness: Deployment pipelines
-- AWS: Cloud resources
+- Harness: Build/deploy pipelines for ECS
+- AWS: ALB + ECS (Fargate) + ECR + RDS/PostgreSQL
 
 ## API Structure
 
 ### Common Patterns
-- Authentication: JWT
+- Authentication: JWT (planned)
 - Error Handling: Standardized
 - Logging: Structured JSON
 - Documentation: OpenAPI/Swagger
@@ -88,11 +87,9 @@ Each API follows RESTful conventions:
 1. Local Development
    - Individual API projects
    - Docker Compose for services
-   
 2. Testing
    - Unit tests per project
    - Integration tests
-   
 3. Deployment
    - Harness pipelines
    - AWS infrastructure
