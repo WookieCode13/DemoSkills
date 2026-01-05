@@ -180,6 +180,11 @@ pipeline:
                         prio=$(echo "$r" | jq -r '.priority')
                         target_path=$(echo "$r" | jq -r '.targetPath')
                         paths=$(echo "$r" | jq -r '.paths | join(",")')
+                        # Avoid recreating report docs redirects that can loop (/reports/docs).
+                        if echo "$target_path" | grep -qi "/reports/docs"; then
+                          echo "Skipping redirect priority ${prio} targeting ${target_path}"
+                          continue
+                        fi
                         create_redirect_rule "$prio" "$target_path" "$paths"
                       done
 
