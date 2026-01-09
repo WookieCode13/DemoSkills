@@ -12,6 +12,9 @@ try
     var builder = WebApplication.CreateBuilder(args);
     var buildBranch = Environment.GetEnvironmentVariable("BUILD_BRANCH") ?? "local";
 
+    // Optional per-environment local overrides (not committed): appsettings.{Environment}.Local.json
+    builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.Local.json", optional: true, reloadOnChange: true);
+
     // Use Serilog for logging
 builder.Host.UseSerilog((ctx, services, cfg) => cfg
     .ReadFrom.Configuration(ctx.Configuration)

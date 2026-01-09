@@ -94,3 +94,8 @@ pytestdebug.log
 logs/
 *.log
 
+# ---- Local overrides ----
+appsettings.*.Local.json
+.env.local
+# Local env examples (keep off git)
+.env.local.example

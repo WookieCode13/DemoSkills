@@ -22,6 +22,11 @@ pipeline:
       value: <+input>
       description: Tag produced by the demoskills build pipeline.
       required: true
+    - name: TARGET_ENV
+      type: String
+      value: <+input>.allowedValues(Development,Production)
+      description: Target environment (drives ASPNETCORE_ENVIRONMENT and connection string selection)
+      required: true
     - name: BUILD_REF
       type: String
       value: <+input>
@@ -70,6 +75,9 @@ pipeline:
                       AWS_ACCESS_KEY_ID: <+secrets.getValue("proj-ds-aws-access-key-id")>
                       AWS_SECRET_ACCESS_KEY: <+secrets.getValue("proj-ds-aws-secret-access-key")>
                       AWS_REGION: <+secrets.getValue("proj-ds-aws-region")>
+                      TARGET_ENV: <+pipeline.variables.TARGET_ENV>
+                      DB_CONN_DEV: <+secrets.getValue("db_conn_dev")>
+                      DB_CONN_PROD: <+secrets.getValue("db_conn_prod")>
                     command: |-
                       set -euo pipefail
 
@@ -80,9 +88,22 @@ pipeline:
                       IMAGE_TAG="<+pipeline.variables.IMAGE_TAG>"
                       BUILD_REF="<+pipeline.variables.BUILD_REF>"
                       CLUSTER="<+pipeline.variables.ECS_CLUSTER>"
+                      TARGET_ENV="${TARGET_ENV:-Development}"
                       WAIT_FOR_STABLE_RAW="<+pipeline.variables.WAIT_FOR_STABLE>"
                       DESIRED_COUNT_RAW="<+pipeline.variables.DESIRED_COUNT>"
                       ECR_REPO="demoskills"
+                      DB_CONN=""
+
+                      if [ "$TARGET_ENV" = "Production" ]; then
+                        DB_CONN="${DB_CONN_PROD:-}"
+                      else
+                        DB_CONN="${DB_CONN_DEV:-}"
+                      fi
+
+                      if [ -z "$DB_CONN" ]; then
+                        echo "ERROR: Connection string not provided for TARGET_ENV=$TARGET_ENV. Set db_conn_dev/db_conn_prod secrets."
+                        exit 1
+                      fi
 
                       # Derive names; default to "<service>-svc".
                       SERVICE_KEY=$(echo "$SERVICE_NAME" | tr '[:upper:]' '[:lower:]')
@@ -176,10 +197,12 @@ pipeline:
                                   .image = $image
                                   | .environment = (
                                       (.environment // [])
-                                      | map(select(.name != "BUILD_BRANCH" and .name != "BUILD_REF"))
+                                      | map(select(.name != "BUILD_BRANCH" and .name != "BUILD_REF" and .name != "ASPNETCORE_ENVIRONMENT" and .name != "ConnectionStrings__Default"))
                                       + [
                                           { "name": "BUILD_BRANCH", "value": $build_ref },
-                                          { "name": "BUILD_REF", "value": $build_ref }
+                                          { "name": "BUILD_REF", "value": $build_ref },
+                                          { "name": "ASPNETCORE_ENVIRONMENT", "value": "'$TARGET_ENV'" },
+                                          { "name": "ConnectionStrings__Default", "value": "'$DB_CONN'" }
                                         ]
                                     )
                                 else . end
