@@ -10,30 +10,32 @@
     - Serilog
     - Swashbuckle.AspNetCore
 
-- Language: Python 3.x
+- Language: Python 3.12
   - Framework: FastAPI
   - Key Packages:
     - fastapi
     - uvicorn
-    - python-jose[cryptography]
+    - httpx (testing)
     - pytest
 
 ### Database
-- PostgreSQL
-  - ORM: Entity Framework Core / SQLAlchemy
-  - Migration Tools: EF Core Migrations / Alembic
+- PostgreSQL (shared across APIs)
+  - ORM: Entity Framework Core (planned) / SQLAlchemy (planned)
+  - Migration Tools: EF Core Migrations / Alembic (planned)
 
 ### Infrastructure
 - Docker
   - Base Images:
     - mcr.microsoft.com/dotnet/aspnet:8.0
-    - python:3.11-slim
+    - python:3.12-slim
   - Multi-stage builds for optimization
 
 - AWS Services
-  - Lambda: Serverless functions
-  - ECS: Container orchestration
-  - API Gateway: API management
+  - ALB: Ingress and path routing
+  - ECS (Fargate): Container orchestration
+  - ECR: Image registry
+  - RDS: Managed PostgreSQL
+  - Lambda: Serverless functions (optional)
   - RDS: Managed PostgreSQL
 
 ## Development Tools
@@ -47,7 +49,7 @@
   - Recommended Settings in .vscode/
 
 - Git + GitHub
-  - Branch Strategy: trunk-based
+  - Branch Strategy: feature branches (feature/xxx) merged via PR
   - PR Requirements: Tests + Review
 
 ### Testing
@@ -94,7 +96,9 @@ graph TD
 ```
 
 ## Configuration Management
-- AWS credentials via AWS CLI
+- AWS credentials via AWS CLI/profile or Harness secrets
 - Database connection strings in secrets
-- Environment-specific settings in appsettings.json / .env
+- Environment-specific settings:
+  - `.NET`: `appsettings.Development.json`
+  - Python: `.env` (+ `.env.example`)
 - CI/CD variables in Harness

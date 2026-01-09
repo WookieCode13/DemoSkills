@@ -31,10 +31,8 @@ class ReportCreateRequest(BaseModel):
     description: str | None = Field(default=None, examples=["Example report"])
 
 
-_reports: dict[int, Report] = {
-    1: Report(id=1, name="Sample Report", description="Example data"),
-}
-_next_report_id = 2
+_reports: dict[int, Report] = {}
+_next_report_id = 1
 
 
 @app.get("/", tags=["ops"])
@@ -62,6 +60,7 @@ def health() -> HealthResponse:
 
 @router.get("", response_model=list[Report], summary="List reports")
 def list_reports() -> list[Report]:
+    # TODO: replace in-memory stub with real data source.
     return sorted(_reports.values(), key=lambda r: r.id)
 
 
