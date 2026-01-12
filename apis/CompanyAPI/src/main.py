@@ -34,8 +34,11 @@ class CompanyCreateRequest(BaseModel):
     industry: str | None = Field(default=None, examples=["Demo Skills 123"])
 
 
-_companies: dict[int, Company] = {}
-_next_company_id = 1
+_companies: dict[int, Company] = {
+    1: Company(id=1, name="Demo Skills LLC", industry="Tech"),
+    2: Company(id=2, name="Example Co", industry="Consulting"),
+}
+_next_company_id = max(_companies.keys()) + 1
 
 
 @app.get("/", tags=["ops"])
