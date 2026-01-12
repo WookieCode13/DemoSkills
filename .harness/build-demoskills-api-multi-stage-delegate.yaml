@@ -29,6 +29,12 @@ pipeline:
       value: <+input>.allowedValues(Development,Production)
       description: Target environment (used to drive ASPNETCORE_ENVIRONMENT and secrets in downstream steps)
       required: true
+    - name: PERFORM_TESTS
+      type: String
+      value: <+input>.allowedValues("Yes","No")
+      description: Run unit tests? Yes to run, No to skip
+      required: true
+      default: "Yes"
 
   stages:
     # -------------------- STAGE 1: SETUP (generate tag) --------------------
@@ -114,7 +120,7 @@ pipeline:
                   identifier: Build_Test_CS
                   when:
                     stageStatus: Success
-                    condition: (<+pipeline.variables.SERVICE_NAME> == "EmployeeAPI") || (<+pipeline.variables.SERVICE_NAME> == "PayAPI") || (<+pipeline.variables.SERVICE_NAME> == "TaxCalculatorAPI")
+                    condition: ((<+pipeline.variables.SERVICE_NAME> == "EmployeeAPI") || (<+pipeline.variables.SERVICE_NAME> == "PayAPI") || (<+pipeline.variables.SERVICE_NAME> == "TaxCalculatorAPI")) && (<+pipeline.variables.PERFORM_TESTS> == "Yes")
                   spec:
                     shell: Sh
                     image: mcr.microsoft.com/dotnet/sdk:8.0
@@ -133,7 +139,7 @@ pipeline:
                   identifier: Build_Test_PY
                   when:
                     stageStatus: Success
-                    condition: (<+pipeline.variables.SERVICE_NAME> == "CompanyAPI") || (<+pipeline.variables.SERVICE_NAME> == "ReportAPI")
+                    condition: ((<+pipeline.variables.SERVICE_NAME> == "CompanyAPI") || (<+pipeline.variables.SERVICE_NAME> == "ReportAPI")) && (<+pipeline.variables.PERFORM_TESTS> == "Yes")
                   spec:
                     shell: Sh
                     image: python:3.12-slim

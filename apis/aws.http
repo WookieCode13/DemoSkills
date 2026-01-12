@@ -41,6 +41,8 @@ GET http://longranch.com/companies/docs
 GET http://longranch.com/companies/ops
 ### 
 GET http://longranch.com/companies/openapi.json
+### swagger (will work after redeploy)
+GET http://longranch.com/companies/swagger
 
 
 ### --- Pay ---
@@ -61,3 +63,5 @@ GET http://longranch.com/api/v1/reports/health
 GET http://longranch.com/reports/docs
 ### doc (py swagger)
 GET http://longranch.com/reports/swagger
+### swagger json
+GET http://longranch.com/reports/openapi.json
