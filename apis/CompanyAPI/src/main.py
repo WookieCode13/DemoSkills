@@ -2,6 +2,7 @@ from typing import Annotated
 
 import os
 from fastapi import APIRouter, Body, FastAPI, HTTPException, Path, status
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
 
@@ -11,8 +12,9 @@ app = FastAPI(
     title="CompanyAPI",
     version=f"api v1 ({_build_branch})",
     description=f"DemoSkills Company API (FastAPI). Build branch: {_build_branch}.",
-    docs_url="/companies/docs",
-    openapi_url="/companies/openapi.json",
+    root_path="/companies",
+    docs_url="/docs",
+    openapi_url="/openapi.json",
 )
 
 

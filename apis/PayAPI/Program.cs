@@ -45,7 +45,7 @@ try
         app.UseSwaggerUI(c =>
         {
             c.RoutePrefix = "pay/swagger";
-            c.SwaggerEndpoint("v1/swagger.json", "PayAPI v1");
+            c.SwaggerEndpoint("/pay/v1/swagger.json", "PayAPI v1");
         });
     }
 
