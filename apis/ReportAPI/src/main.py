@@ -2,6 +2,7 @@ from typing import Annotated
 
 import os
 from fastapi import APIRouter, Body, FastAPI, HTTPException, Path, status
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
 _build_branch = os.getenv("BUILD_BRANCH", "local")
@@ -10,8 +11,9 @@ app = FastAPI(
     title="ReportAPI",
     version=f"0.1.0 ({_build_branch})",
     description=f"DemoSkills Report API (FastAPI). Build branch: {_build_branch}.",
-    docs_url="/reports/docs",
-    openapi_url="/reports/openapi.json",
+    root_path="/reports",
+    docs_url="/docs",
+    openapi_url="/openapi.json",
 )
 
 
