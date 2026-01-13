@@ -21,7 +21,7 @@ pipeline:
   variables:
     - name: SERVICE_NAME
       type: String
-      value: <+input>.allowedValues(EmployeeAPI,CompanyAPI,TaxCalculatorAPI,PayAPI,ReportAPI,Dashboard)
+      value: <+input>.allowedValues(EmployeeAPI,CompanyAPI,TaxCalculatorAPI,PayAPI,ReportAPI,Dashboard,All)
       description: Choose the API to build (Dashboard = static UI).
       required: true
     - name: TARGET_ENV
@@ -42,6 +42,8 @@ pipeline:
         name: setup
         identifier: setup
         type: CI
+        when:
+          condition: <+pipeline.variables.SERVICE_NAME> != "All"
         delegateSelectors:
           - harness-docker-delegate-demoskills
         spec:
@@ -101,6 +103,8 @@ pipeline:
         name: build-and-test
         identifier: build_and_test
         type: CI
+        when:
+          condition: <+pipeline.variables.SERVICE_NAME> != "All"
         delegateSelectors:
           - harness-docker-delegate-demoskills        
         spec:
@@ -157,6 +161,8 @@ pipeline:
         name: docker-build-and-push
         identifier: docker_build_and_push
         type: CI
+        when:
+          condition: <+pipeline.variables.SERVICE_NAME> != "All"
         delegateSelectors:
           - harness-docker-delegate-demoskills
         spec:
@@ -238,6 +244,8 @@ pipeline:
         name: post
         identifier: post
         type: CI
+        when:
+          condition: <+pipeline.variables.SERVICE_NAME> != "All"
         delegateSelectors:
           - harness-docker-delegate-demoskills
         spec:
@@ -264,3 +272,118 @@ pipeline:
                       printf '\033[32m>>> Final IMAGE_TAG (for deploy or copy): %s <<<\033[0m\n' "$IMAGE_TAG"
                       printf '\033[32m>>> Branch/Tag ref: %s <<<\033[0m\n' "$BUILD_REF"
                       printf '\033[32m------------------------------------------------------------\033[0m\n'
+
+    # -------------------- STAGE 5: BUILD ALL (loop) --------------------
+    - stage:
+        name: build-all
+        identifier: build_all
+        type: CI
+        when:
+          condition: <+pipeline.variables.SERVICE_NAME> == "All"
+        delegateSelectors:
+          - harness-docker-delegate-demoskills
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Docker
+            spec:
+              connectorRef: account.harnessImage
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: aws-docker-login
+                  identifier: aws_docker_login_all
+                  spec:
+                    shell: Sh
+                    privileged: true
+                    envVariables:
+                      AWS_ACCOUNT_ID: <+secrets.getValue("proj-ds-aws-account-id")>
+                      AWS_ACCESS_KEY_ID: <+secrets.getValue("proj-ds-aws-access-key-id")>
+                      AWS_SECRET_ACCESS_KEY: <+secrets.getValue("proj-ds-aws-secret-access-key")>
+                      AWS_REGION: <+secrets.getValue("proj-ds-aws-region")>
+                    command: |-
+                      echo "Logging into ECR..."
+                      aws ecr get-login-password --region $AWS_REGION \
+                        | docker login \
+                            --username AWS \
+                            --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+              - step:
+                  type: Run
+                  name: build-all-services
+                  identifier: build_all_services
+                  spec:
+                    shell: Sh
+                    privileged: true
+                    envVariables:
+                      AWS_ACCOUNT_ID: <+secrets.getValue("proj-ds-aws-account-id")>
+                      AWS_REGION: <+secrets.getValue("proj-ds-aws-region")>
+                      TARGET_ENV: <+pipeline.variables.TARGET_ENV>
+                      PERFORM_TESTS: <+pipeline.variables.PERFORM_TESTS>
+                    command: |-
+                      set -euo pipefail
+
+                      SERVICES="EmployeeAPI CompanyAPI TaxCalculatorAPI PayAPI ReportAPI Dashboard"
+                      BRANCH="<+codebase.branch>"
+                      GIT_TAG="<+codebase.gitTag>"
+                      SPEC_TAG="<+pipeline.properties.ci.codebase.build.spec.tag>"
+
+                      pick_first() {
+                        for val in "$@"; do
+                          if [ -n "$val" ] && [ "$val" != "null" ] && [ "$val" != "'null'" ]; then
+                            echo "$val"
+                            return 0
+                          fi
+                        done
+                        echo "no_name"
+                      }
+
+                      SAFE_BRANCH=$(echo "$BRANCH" | tr '/' '-')
+                      CLEAN_BRANCH=$(echo "$SAFE_BRANCH" | sed 's/^feature-//')
+                      BUILD_REF="$(pick_first "$SPEC_TAG" "$GIT_TAG" "$CLEAN_BRANCH")"
+
+                      echo "Using BUILD_REF=$BUILD_REF TARGET_ENV=$TARGET_ENV PERFORM_TESTS=$PERFORM_TESTS"
+                      IMAGE_TAGS_FILE=/tmp/image_tags.txt
+                      : > "$IMAGE_TAGS_FILE"
+
+                      for SERVICE_NAME in $SERVICES; do
+                        echo "---- Building $SERVICE_NAME ----"
+                        IMAGE_TAG="${SERVICE_NAME}-${BUILD_REF}.b<+pipeline.sequenceId>"
+
+                        if [ "$PERFORM_TESTS" = "Yes" ]; then
+                          if [ "$SERVICE_NAME" = "CompanyAPI" ] || [ "$SERVICE_NAME" = "ReportAPI" ]; then
+                            docker run --rm -v "$PWD":/work -w /work/apis/$SERVICE_NAME python:3.12-slim sh -c "
+                              set -e
+                              export PYTHONPATH=/work/apis/$SERVICE_NAME
+                              python -m pip install --no-cache-dir -r requirements.txt
+                              python -m pytest -vv
+                            "
+                          elif [ "$SERVICE_NAME" != "Dashboard" ]; then
+                            docker run --rm -v "$PWD":/work -w /work/apis/$SERVICE_NAME mcr.microsoft.com/dotnet/sdk:8.0 sh -c "
+                              set -e
+                              dotnet restore
+                              dotnet build --configuration Release
+                              dotnet test
+                            "
+                          fi
+                        fi
+
+                        if [ "$SERVICE_NAME" = "Dashboard" ]; then
+                          docker build -t demo-image:$IMAGE_TAG -f dashboard/Dockerfile dashboard
+                        else
+                          docker build -t demo-image:$IMAGE_TAG -f apis/$SERVICE_NAME/Dockerfile apis/$SERVICE_NAME
+                        fi
+
+                        FULL_TAG="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/demoskills:$IMAGE_TAG"
+                        docker tag demo-image:$IMAGE_TAG "$FULL_TAG"
+                        docker push "$FULL_TAG"
+
+                        echo "$SERVICE_NAME -> $FULL_TAG" | tee -a "$IMAGE_TAGS_FILE"
+                      done
+
+                      echo "Image tags built and pushed:"
+                      cat "$IMAGE_TAGS_FILE"
