@@ -41,6 +41,8 @@ pipeline:
               - Dashboard
         spec:
           pipeline: DS_Build_w_Docker_Delegate
+          orgIdentifier: default
+          projectIdentifier: demo_skills_project
           inputs:
             variables:
               SERVICE_NAME: <+matrix.service>
