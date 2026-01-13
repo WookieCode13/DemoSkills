@@ -11,7 +11,6 @@ app = FastAPI(
     title="ReportAPI",
     version=f"0.1.0 ({_build_branch})",
     description=f"DemoSkills Report API (FastAPI). Build branch: {_build_branch}.",
-    root_path="/reports",
     docs_url="/docs",
     openapi_url="/openapi.json",
 )

@@ -40,12 +40,12 @@ try
     {
         app.UseSwagger(c =>
         {
-            c.RouteTemplate = "taxes/swagger/{documentName}/swagger.json";
+            c.RouteTemplate = "swagger/{documentName}/swagger.json";
         });
         app.UseSwaggerUI(c =>
         {
-            c.RoutePrefix = "taxes/swagger";
-            c.SwaggerEndpoint("v1/swagger.json", "TaxCalculatorAPI v1");
+            c.RoutePrefix = "swagger";
+            c.SwaggerEndpoint("swagger/v1/swagger.json", "TaxCalculatorAPI v1");
         });
     }
 
