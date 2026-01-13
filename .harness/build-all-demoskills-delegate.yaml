@@ -49,11 +49,11 @@ pipeline:
           execution:
             steps:
               - step:
-                  type: Matrix
-                  name: Build Matrix
-                  identifier: Build_Matrix
-                  spec:
-                    axes:
+                  type: Pipeline
+                  name: Build Service
+                  identifier: Build_Service
+                  strategy:
+                    matrix:
                       service:
                         - EmployeeAPI
                         - CompanyAPI
@@ -61,16 +61,11 @@ pipeline:
                         - PayAPI
                         - ReportAPI
                         - Dashboard
-                    steps:
-                      - step:
-                          type: Pipeline
-                          name: Build <+matrix.service>
-                          identifier: Build_Service
-                          spec:
-                            pipeline: DS_Build_w_Docker_Delegate
-                            inputs:
-                              variables:
-                                SERVICE_NAME: <+matrix.service>
-                                TARGET_ENV: <+pipeline.variables.TARGET_ENV>
-                                PERFORM_TESTS: <+pipeline.variables.PERFORM_TESTS>
-                          timeout: 1h
+                  spec:
+                    pipeline: DS_Build_w_Docker_Delegate
+                    inputs:
+                      variables:
+                        SERVICE_NAME: <+matrix.service>
+                        TARGET_ENV: <+pipeline.variables.TARGET_ENV>
+                        PERFORM_TESTS: <+pipeline.variables.PERFORM_TESTS>
+                  timeout: 1h

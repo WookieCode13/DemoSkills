@@ -42,11 +42,11 @@ pipeline:
           execution:
             steps:
               - step:
-                  type: Matrix
-                  name: Deploy Matrix
-                  identifier: Deploy_Matrix
-                  spec:
-                    axes:
+                  type: Pipeline
+                  name: Deploy Service
+                  identifier: Deploy_Service
+                  strategy:
+                    matrix:
                       service:
                         - EmployeeAPI
                         - CompanyAPI
@@ -54,19 +54,14 @@ pipeline:
                         - PayAPI
                         - ReportAPI
                         - Dashboard
-                    steps:
-                      - step:
-                          type: Pipeline
-                          name: Deploy <+matrix.service>
-                          identifier: Deploy_Service
-                          spec:
-                            pipeline: DS_Deploy_to_ECS_Delegate
-                            inputs:
-                              variables:
-                                SERVICE_NAME: <+matrix.service>
-                                IMAGE_TAG: <+pipeline.variables.IMAGE_TAG>
-                                TARGET_ENV: <+pipeline.variables.TARGET_ENV>
-                                BUILD_REF: <+pipeline.variables.IMAGE_TAG>
-                                DESIRED_COUNT: 1
-                                WAIT_FOR_STABLE: "true"
-                          timeout: 1h
+                  spec:
+                    pipeline: DS_Deploy_to_ECS_Delegate
+                    inputs:
+                      variables:
+                        SERVICE_NAME: <+matrix.service>
+                        IMAGE_TAG: <+pipeline.variables.IMAGE_TAG>
+                        TARGET_ENV: <+pipeline.variables.TARGET_ENV>
+                        BUILD_REF: <+pipeline.variables.IMAGE_TAG>
+                        DESIRED_COUNT: 1
+                        WAIT_FOR_STABLE: "true"
+                  timeout: 1h
