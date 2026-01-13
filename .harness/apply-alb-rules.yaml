@@ -145,34 +145,46 @@ pipeline:
                       create_forward_rule() {
                         local prio="$1"
                         local tg="$2"
-                        shift 2
+                        local hosts_csv="$3"
+                        shift 3
                         local paths=("$@")
                         if [ -z "$tg" ] || [ "$tg" = "null" ] || [ "$tg" = "'null'" ]; then
                           echo "Skipping forward rule ${prio}; target group not provided."
                           return
                         fi
+                        local conditions=()
+                        if [ -n "$hosts_csv" ]; then
+                          conditions+=("Field=host-header,Values=${hosts_csv}")
+                        fi
+                        conditions+=("Field=path-pattern,Values=$(IFS=,; echo "${paths[*]}")")
                         aws elbv2 create-rule \
                           --listener-arn "$LISTENER_ARN" \
                           --priority "$prio" \
-                          --conditions "Field=path-pattern,Values=$(IFS=,; echo "${paths[*]}")" \
+                          --conditions "${conditions[@]}" \
                           --actions Type=forward,TargetGroupArn="$tg" >/dev/null
-                        echo "Created forward rule priority ${prio} -> $tg for paths: ${paths[*]}"
+                        echo "Created forward rule priority ${prio} -> $tg for hosts: ${hosts_csv:-<any>} paths: ${paths[*]}"
                       }
 
                       create_redirect_rule() {
                         local prio="$1"
                         local target_path="$2"
-                        shift 2
+                        local hosts_csv="$3"
+                        shift 3
                         local paths=("$@")
                         local action_json="[{'Type':'redirect','RedirectConfig':{'Protocol':'HTTP','Port':'80','Host':'#{host}','Path':'${target_path}','Query':'#{query}','StatusCode':'HTTP_302'}}]"
                         # AWS CLI expects double quotes; swap single quotes to double at runtime to avoid shell escaping issues.
                         action_json=$(echo "$action_json" | sed "s/'/\"/g")
+                        local conditions=()
+                        if [ -n "$hosts_csv" ]; then
+                          conditions+=("Field=host-header,Values=${hosts_csv}")
+                        fi
+                        conditions+=("Field=path-pattern,Values=$(IFS=,; echo "${paths[*]}")")
                         aws elbv2 create-rule \
                           --listener-arn "$LISTENER_ARN" \
                           --priority "$prio" \
-                          --conditions "Field=path-pattern,Values=$(IFS=,; echo "${paths[*]}")" \
+                          --conditions "${conditions[@]}" \
                           --actions "$action_json" >/dev/null
-                        echo "Created redirect rule priority ${prio} -> ${target_path} for paths: ${paths[*]}"
+                        echo "Created redirect rule priority ${prio} -> ${target_path} for hosts: ${hosts_csv:-<any>} paths: ${paths[*]}"
                       }
 
                       # Redirects for swagger/docs from JSON
@@ -180,24 +192,21 @@ pipeline:
                         prio=$(echo "$r" | jq -r '.priority')
                         target_path=$(echo "$r" | jq -r '.targetPath')
                         paths=$(echo "$r" | jq -r '.paths | join(",")')
-                        # Avoid recreating report docs redirects that can loop (/reports/docs).
-                        if echo "$target_path" | grep -qi "/reports/docs"; then
-                          echo "Skipping redirect priority ${prio} targeting ${target_path}"
-                          continue
-                        fi
-                        create_redirect_rule "$prio" "$target_path" "$paths"
+                        hosts=$(echo "$r" | jq -r '.hosts // [] | join(",")')
+                        create_redirect_rule "$prio" "$target_path" "$hosts" "$paths"
                       done
 
                       # Forwards from JSON
                       jq -c '.forwards[]' /tmp/rules.json | while read -r f; do
                         prio=$(echo "$f" | jq -r '.priority')
                         paths=$(echo "$f" | jq -r '.paths | join(",")')
+                        hosts=$(echo "$f" | jq -r '.hosts // [] | join(",")')
                         tg_name=$(echo "$f" | jq -r '.targetGroupName')
                         tg_arn="$(resolve_tg_by_name "$tg_name")"
                         if [ -z "$tg_arn" ] || [ "$tg_arn" = "None" ]; then
                           echo "Skipping forward rule ${prio}; target group '${tg_name}' not found/resolved."
                         else
-                          create_forward_rule "$prio" "$tg_arn" "$paths"
+                          create_forward_rule "$prio" "$tg_arn" "$hosts" "$paths"
                         fi
                       done
 
