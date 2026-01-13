@@ -34,8 +34,8 @@ pipeline:
               - Dashboard
         spec:
           pipeline: DS_Deploy_to_ECS_Delegate
-          orgIdentifier: default
-          projectIdentifier: demo_skills_project
+          org: default
+          project: demo_skills_project
           inputs:
             variables:
               SERVICE_NAME: <+matrix.service>
