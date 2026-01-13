@@ -24,48 +24,25 @@ pipeline:
       description: Run tests in child builds? Yes to run, No to skip
       required: true
       default: "Yes"
-    - name: SERVICES
-      type: String
-      value: <+input>.default(EmployeeAPI,CompanyAPI,TaxCalculatorAPI,PayAPI,ReportAPI,Dashboard)
-      description: Comma-separated list of services to build (use ALL above or subset)
-      required: true
 
   stages:
     - stage:
-        name: build-all
-        identifier: build_all
-        type: CI
-        delegateSelectors:
-          - harness-docker-delegate-demoskills
+        name: Build Matrix
+        identifier: Build_Matrix
+        type: Pipeline
+        strategy:
+          matrix:
+            service:
+              - EmployeeAPI
+              - CompanyAPI
+              - TaxCalculatorAPI
+              - PayAPI
+              - ReportAPI
+              - Dashboard
         spec:
-          cloneCodebase: false
-          platform:
-            os: Linux
-            arch: Amd64
-          runtime:
-            type: Docker
-            spec:
-              connectorRef: account.harnessImage
-          execution:
-            steps:
-              - step:
-                  type: Pipeline
-                  name: Build Service
-                  identifier: Build_Service
-                  strategy:
-                    matrix:
-                      service:
-                        - EmployeeAPI
-                        - CompanyAPI
-                        - TaxCalculatorAPI
-                        - PayAPI
-                        - ReportAPI
-                        - Dashboard
-                  spec:
-                    pipeline: DS_Build_w_Docker_Delegate
-                    inputs:
-                      variables:
-                        SERVICE_NAME: <+matrix.service>
-                        TARGET_ENV: <+pipeline.variables.TARGET_ENV>
-                        PERFORM_TESTS: <+pipeline.variables.PERFORM_TESTS>
-                  timeout: 1h
+          pipeline: DS_Build_w_Docker_Delegate
+          inputs:
+            variables:
+              SERVICE_NAME: <+matrix.service>
+              TARGET_ENV: <+pipeline.variables.TARGET_ENV>
+              PERFORM_TESTS: <+pipeline.variables.PERFORM_TESTS>

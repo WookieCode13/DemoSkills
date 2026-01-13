@@ -17,51 +17,28 @@ pipeline:
       value: <+input>
       description: Tag to deploy for all services (from build pipeline)
       required: true
-    - name: SERVICES
-      type: String
-      value: <+input>.default(EmployeeAPI,CompanyAPI,TaxCalculatorAPI,PayAPI,ReportAPI,Dashboard)
-      description: Comma-separated list of services to deploy
-      required: true
 
   stages:
     - stage:
-        name: deploy-all
-        identifier: deploy_all
-        type: CI
-        delegateSelectors:
-          - harness-docker-delegate-demoskills
+        name: Deploy Matrix
+        identifier: Deploy_Matrix
+        type: Pipeline
+        strategy:
+          matrix:
+            service:
+              - EmployeeAPI
+              - CompanyAPI
+              - TaxCalculatorAPI
+              - PayAPI
+              - ReportAPI
+              - Dashboard
         spec:
-          cloneCodebase: false
-          platform:
-            os: Linux
-            arch: Amd64
-          runtime:
-            type: Docker
-            spec:
-              connectorRef: account.harnessImage
-          execution:
-            steps:
-              - step:
-                  type: Pipeline
-                  name: Deploy Service
-                  identifier: Deploy_Service
-                  strategy:
-                    matrix:
-                      service:
-                        - EmployeeAPI
-                        - CompanyAPI
-                        - TaxCalculatorAPI
-                        - PayAPI
-                        - ReportAPI
-                        - Dashboard
-                  spec:
-                    pipeline: DS_Deploy_to_ECS_Delegate
-                    inputs:
-                      variables:
-                        SERVICE_NAME: <+matrix.service>
-                        IMAGE_TAG: <+pipeline.variables.IMAGE_TAG>
-                        TARGET_ENV: <+pipeline.variables.TARGET_ENV>
-                        BUILD_REF: <+pipeline.variables.IMAGE_TAG>
-                        DESIRED_COUNT: 1
-                        WAIT_FOR_STABLE: "true"
-                  timeout: 1h
+          pipeline: DS_Deploy_to_ECS_Delegate
+          inputs:
+            variables:
+              SERVICE_NAME: <+matrix.service>
+              IMAGE_TAG: <+pipeline.variables.IMAGE_TAG>
+              TARGET_ENV: <+pipeline.variables.TARGET_ENV>
+              BUILD_REF: <+pipeline.variables.IMAGE_TAG>
+              DESIRED_COUNT: 1
+              WAIT_FOR_STABLE: "true"
