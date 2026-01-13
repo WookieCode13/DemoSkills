@@ -1,0 +1,76 @@
+pipeline:
+  name: DS - Build All w Docker Delegate
+  identifier: DS_Build_All_w_Docker_Delegate
+  projectIdentifier: demo_skills_project
+  orgIdentifier: default
+  tags: {}
+
+  properties:
+    ci:
+      codebase:
+        connectorRef: git_proj_demoskills
+        build: <+input>
+
+  variables:
+    - name: TARGET_ENV
+      type: String
+      value: <+input>.allowedValues(Development,Production)
+      description: Target environment passed into child builds (ASPNETCORE_ENVIRONMENT)
+      required: true
+      default: Development
+    - name: PERFORM_TESTS
+      type: String
+      value: <+input>.allowedValues("Yes","No")
+      description: Run tests in child builds? Yes to run, No to skip
+      required: true
+      default: "Yes"
+    - name: SERVICES
+      type: String
+      value: <+input>.default(EmployeeAPI,CompanyAPI,TaxCalculatorAPI,PayAPI,ReportAPI,Dashboard)
+      description: Comma-separated list of services to build (use ALL above or subset)
+      required: true
+
+  stages:
+    - stage:
+        name: build-all
+        identifier: build_all
+        type: CI
+        delegateSelectors:
+          - harness-docker-delegate-demoskills
+        spec:
+          cloneCodebase: false
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Docker
+            spec:
+              connectorRef: account.harnessImage
+          execution:
+            steps:
+              - step:
+                  type: Matrix
+                  name: Build Matrix
+                  identifier: Build_Matrix
+                  spec:
+                    axes:
+                      service:
+                        - EmployeeAPI
+                        - CompanyAPI
+                        - TaxCalculatorAPI
+                        - PayAPI
+                        - ReportAPI
+                        - Dashboard
+                    steps:
+                      - step:
+                          type: Pipeline
+                          name: Build <+matrix.service>
+                          identifier: Build_Service
+                          spec:
+                            pipeline: DS_Build_w_Docker_Delegate
+                            inputs:
+                              variables:
+                                SERVICE_NAME: <+matrix.service>
+                                TARGET_ENV: <+pipeline.variables.TARGET_ENV>
+                                PERFORM_TESTS: <+pipeline.variables.PERFORM_TESTS>
+                          timeout: 1h
