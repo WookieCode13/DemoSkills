@@ -35,8 +35,8 @@ pipeline:
       required: true
     - name: RULES_KEY
       type: String
-      value: alb-rules.sample.json
-      description: S3 key for rules JSON
+      value: <+input>.allowedValues(alb-rules.sample.json,alb-rules-host-based.json)
+      description: S3 key for rules JSON (path-based default or host-based alt)
       required: true
   stages:
     - stage:

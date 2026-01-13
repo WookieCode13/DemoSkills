@@ -40,11 +40,11 @@ try
     {
         app.UseSwagger(c =>
         {
-            c.RouteTemplate = "pay/swagger/{documentName}/swagger.json";
+            c.RouteTemplate = "swagger/{documentName}/swagger.json";
         });
         app.UseSwaggerUI(c =>
         {
-            c.RoutePrefix = "pay/swagger";
+            c.RoutePrefix = "swagger";
             c.SwaggerEndpoint("v1/swagger.json", "PayAPI v1");
         });
     }

@@ -53,11 +53,11 @@ if (enableSwagger)
 {
     app.UseSwagger(c =>
     {
-        c.RouteTemplate = "employees/swagger/{documentName}/swagger.json";
+        c.RouteTemplate = "swagger/{documentName}/swagger.json";
     });
     app.UseSwaggerUI(c =>
     {
-        c.RoutePrefix = "employees/swagger";
+        c.RoutePrefix = "swagger";
         c.SwaggerEndpoint("v1/swagger.json", "EmployeeAPI v1");
     });
 }

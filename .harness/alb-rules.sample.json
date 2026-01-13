@@ -1,0 +1,81 @@
+{
+  "redirects": [
+    {
+      "priority": 70,
+      "paths": ["/api/v1/employees/swagger*"],
+      "targetPath": "/employees/swagger"
+    },
+    {
+      "priority": 71,
+      "paths": ["/api/v1/companies/swagger*", "/companies/swagger*", "/api/v1/companies/docs*"],
+      "targetPath": "/companies/docs"
+    },
+    {
+      "priority": 72,
+      "paths": ["/api/v1/pay/swagger*"],
+      "targetPath": "/pay/swagger"
+    },
+    {
+      "priority": 73,
+      "paths": ["/api/v1/taxes/swagger*"],
+      "targetPath": "/taxes/swagger"
+    },
+    {
+      "priority": 74,
+      "paths": ["/api/v1/reports/swagger*", "/reports/swagger*", "/api/v1/reports/docs*"],
+      "targetPath": "/reports/docs"
+    }
+  ],
+  "forwards": [
+    {
+      "priority": 100,
+      "paths": ["/api/v1/employees/*", "/employees/swagger/v1/swagger.json"],
+      "targetGroupName": "demoskills-tg-8080"
+    },
+    {
+      "priority": 101,
+      "paths": ["/api/v1/companies/*", "/companies/openapi.json"],
+      "targetGroupName": "demoskills-comp-tg-8081"
+    },
+    {
+      "priority": 102,
+      "paths": ["/api/v1/pay/*", "/pay/swagger/v1/swagger.json"],
+      "targetGroupName": "demoskills-pay-tg-8082"
+    },
+    {
+      "priority": 103,
+      "paths": ["/api/v1/taxes/*", "/taxes/swagger/v1/swagger.json"],
+      "targetGroupName": "demoskills-tax-tg-8083"
+    },
+    {
+      "priority": 104,
+      "paths": ["/api/v1/reports/*", "/reports/openapi.json"],
+      "targetGroupName": "demoskills-report-tg-8084"
+    },
+    {
+      "priority": 200,
+      "paths": ["/employees/*"],
+      "targetGroupName": "demoskills-tg-8080"
+    },
+    {
+      "priority": 201,
+      "paths": ["/companies/*"],
+      "targetGroupName": "demoskills-comp-tg-8081"
+    },
+    {
+      "priority": 202,
+      "paths": ["/pay/*"],
+      "targetGroupName": "demoskills-pay-tg-8082"
+    },
+    {
+      "priority": 203,
+      "paths": ["/taxes/*"],
+      "targetGroupName": "demoskills-tax-tg-8083"
+    },
+    {
+      "priority": 204,
+      "paths": ["/reports/*"],
+      "targetGroupName": "demoskills-report-tg-8084"
+    }
+  ]
+}

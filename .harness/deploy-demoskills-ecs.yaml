@@ -14,8 +14,8 @@ pipeline:
   variables:
     - name: SERVICE_NAME
       type: String
-      value: <+input>.allowedValues(EmployeeAPI,CompanyAPI,TaxCalculatorAPI,PayAPI,ReportAPI)
-      description: API to deploy.
+      value: <+input>.allowedValues(EmployeeAPI,CompanyAPI,TaxCalculatorAPI,PayAPI,ReportAPI,Dashboard)
+      description: API/UI to deploy.
       required: true
     - name: IMAGE_TAG
       type: String

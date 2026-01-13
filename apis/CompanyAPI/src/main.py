@@ -12,7 +12,6 @@ app = FastAPI(
     title="CompanyAPI",
     version=f"api v1 ({_build_branch})",
     description=f"DemoSkills Company API (FastAPI). Build branch: {_build_branch}.",
-    root_path="/companies",
     docs_url="/docs",
     openapi_url="/openapi.json",
 )
