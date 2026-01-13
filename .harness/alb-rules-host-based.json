@@ -1,0 +1,66 @@
+{
+  "redirects": [
+    {
+      "priority": 50,
+      "hosts": ["employee.longranch.com"],
+      "paths": ["/swagger*"],
+      "targetPath": "/employees/swagger"
+    },
+    {
+      "priority": 51,
+      "hosts": ["company.longranch.com"],
+      "paths": ["/swagger*", "/docs*"],
+      "targetPath": "/companies/docs"
+    },
+    {
+      "priority": 52,
+      "hosts": ["pay.longranch.com"],
+      "paths": ["/swagger*"],
+      "targetPath": "/pay/swagger"
+    },
+    {
+      "priority": 53,
+      "hosts": ["tax.longranch.com"],
+      "paths": ["/swagger*"],
+      "targetPath": "/taxes/swagger"
+    },
+    {
+      "priority": 54,
+      "hosts": ["report.longranch.com"],
+      "paths": ["/swagger*", "/docs*"],
+      "targetPath": "/reports/docs"
+    }
+  ],
+  "forwards": [
+    {
+      "priority": 100,
+      "hosts": ["employee.longranch.com"],
+      "paths": ["/*"],
+      "targetGroupName": "demoskills-tg-8080"
+    },
+    {
+      "priority": 101,
+      "hosts": ["company.longranch.com"],
+      "paths": ["/*"],
+      "targetGroupName": "demoskills-comp-tg-8081"
+    },
+    {
+      "priority": 102,
+      "hosts": ["pay.longranch.com"],
+      "paths": ["/*"],
+      "targetGroupName": "demoskills-pay-tg-8082"
+    },
+    {
+      "priority": 103,
+      "hosts": ["tax.longranch.com"],
+      "paths": ["/*"],
+      "targetGroupName": "demoskills-tax-tg-8083"
+    },
+    {
+      "priority": 104,
+      "hosts": ["report.longranch.com"],
+      "paths": ["/*"],
+      "targetGroupName": "demoskills-report-tg-8084"
+    }
+  ]
+}
