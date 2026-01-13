@@ -58,7 +58,7 @@ if (enableSwagger)
     app.UseSwaggerUI(c =>
     {
         c.RoutePrefix = "swagger";
-        c.SwaggerEndpoint("swagger/v1/swagger.json", "EmployeeAPI v1");
+        c.SwaggerEndpoint("v1/swagger.json", "EmployeeAPI v1");
     });
 }
 

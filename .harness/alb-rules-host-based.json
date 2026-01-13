@@ -2,30 +2,12 @@
   "redirects": [
     {
       "priority": 50,
-      "hosts": ["employee.longranch.com"],
-      "paths": ["/swagger*"],
-      "targetPath": "/employees/swagger"
-    },
-    {
-      "priority": 51,
       "hosts": ["company.longranch.com"],
       "paths": ["/swagger*", "/docs*"],
       "targetPath": "/companies/docs"
     },
     {
-      "priority": 52,
-      "hosts": ["pay.longranch.com"],
-      "paths": ["/swagger*"],
-      "targetPath": "/pay/swagger"
-    },
-    {
-      "priority": 53,
-      "hosts": ["tax.longranch.com"],
-      "paths": ["/swagger*"],
-      "targetPath": "/taxes/swagger"
-    },
-    {
-      "priority": 54,
+      "priority": 51,
       "hosts": ["report.longranch.com"],
       "paths": ["/swagger*", "/docs*"],
       "targetPath": "/reports/docs"

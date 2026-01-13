@@ -1,67 +1,48 @@
-
-### --- Employee ---
-### 8080 is blocked on longranch.com
-GET http://longranch.com:8080/api/v1/employees/health
-### 80 is allowed. this it the load balancer.
-GET http://longranch.com:80/api/v1/employees/health
-### health no port
-GET http://longranch.com/api/v1/employees/health
-### swagger
-GET http://longranch.com/api/v1/employees/swagger
-### swagger
-GET http://longranch.com/employees/swagger
-### health
-GET http://demoskills-alb-1952058927.us-east-1.elb.amazonaws.com/api/v1/employees/health
-### swagger
-GET http://demoskills-alb-1952058927.us-east-1.elb.amazonaws.com/employees/swagger
-### dbping
-GET http://longranch.com/api/v1/db/ping
+### Base domain (reserved for UI/gateway later)
+GET http://longranch.com
 
 
+### Employee
+GET http://employee.longranch.com/api/v1/employees/health
 ###
-http://longranch.com/employees/swagger/v1/swagger.json
+GET http://employee.longranch.com/swagger
 ###
-http://longranch.com/companies/openapi.json
-
-
-### --- Company ---
-### 8081 is blocked on longranch.com
-GET http://longranch.com:8081/api/v1/companies/health
-### 80 is allowed. this it the load balancer.
-GET http://longranch.com:80/api/v1/companies/health
-### 
-GET http://longranch.com/api/v1/companies/health
-### 
-GET http://longranch.com/api/v1/companies
-### doc (py swagger)
-GET http://longranch.com/companies/swagger
-### doc (py swagger)
-GET http://longranch.com/companies/docs
-### operations (health)
-GET http://longranch.com/companies/ops
-### 
-GET http://longranch.com/companies/openapi.json
-### swagger (will work after redeploy)
-GET http://longranch.com/companies/swagger
-
-
-### --- Pay ---
-GET http://longranch.com/api/v1/pay/health
+GET http://employee.longranch.com/swagger/v1/swagger.json
 ###
-GET http://longranch.com/pay/swagger
+GET http://employee.longranch.com/api/v1/db/ping
 
 
-### --- TaxCalculator ---
-GET http://longranch.com/api/v1/taxes/health
+### Pay
+GET http://pay.longranch.com/api/v1/pay/health
 ###
-GET http://longranch.com/taxes/swagger
-
-
-### --- Report ---
-GET http://longranch.com/api/v1/reports/health
+GET http://pay.longranch.com/swagger
 ###
-GET http://longranch.com/reports/docs
-### doc (py swagger)
-GET http://longranch.com/reports/swagger
-### swagger json
-GET http://longranch.com/reports/openapi.json
+GET http://pay.longranch.com/swagger/v1/swagger.json
+
+
+### TaxCalculator
+GET http://tax.longranch.com/api/v1/taxes/health
+###
+GET http://tax.longranch.com/swagger
+###
+GET http://tax.longranch.com/swagger/v1/swagger.json
+
+
+
+### Company (python)
+GET http://company.longranch.com/api/v1/companies/health
+###
+GET http://company.longranch.com/api/v1/companies
+###
+GET http://company.longranch.com/docs
+###
+GET http://company.longranch.com/openapi.json
+
+
+
+### Report (python)
+GET http://report.longranch.com/api/v1/reports/health
+###
+GET http://report.longranch.com/docs
+###
+GET http://report.longranch.com/openapi.json
