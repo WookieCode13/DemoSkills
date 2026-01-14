@@ -1,0 +1,52 @@
+
+
+# NOT WORKING - harness enterprise only feature
+
+
+
+pipeline:
+  name: DS - Deploy All to ECS Delegate
+  identifier: DS_Deploy_All_to_ECS_Delegate
+  projectIdentifier: demo_skills_project
+  orgIdentifier: default
+  tags: {}
+
+  variables:
+    - name: TARGET_ENV
+      type: String
+      value: <+input>.allowedValues(Development,Production)
+      description: Target environment (Development/Production)
+      required: true
+      default: Development
+    - name: IMAGE_TAG
+      type: String
+      value: <+input>
+      description: Tag to deploy for all services (from build pipeline)
+      required: true
+
+  stages:
+    - stage:
+        name: Deploy Matrix
+        identifier: Deploy_Matrix
+        type: Pipeline
+        strategy:
+          matrix:
+            service:
+              - EmployeeAPI
+              - CompanyAPI
+              - TaxCalculatorAPI
+              - PayAPI
+              - ReportAPI
+              - Dashboard
+        spec:
+          pipeline: DS_Deploy_to_ECS_Delegate
+          org: default
+          project: demo_skills_project
+          inputs:
+            variables:
+              SERVICE_NAME: <+matrix.service>
+              IMAGE_TAG: <+pipeline.variables.IMAGE_TAG>
+              TARGET_ENV: <+pipeline.variables.TARGET_ENV>
+              BUILD_REF: <+pipeline.variables.IMAGE_TAG>
+              DESIRED_COUNT: 1
+              WAIT_FOR_STABLE: "true"

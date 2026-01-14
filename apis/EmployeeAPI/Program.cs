@@ -25,6 +25,15 @@ builder.Host.UseSerilog((ctx, services, cfg) => cfg
 
 builder.Services.AddControllers();
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
+const string corsPolicyName = "DashboardCors";
+var dashboardOrigins = new[] { "http://longranch.com", "http://dashboard.longranch.com" };
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(corsPolicyName, policy =>
+        policy.WithOrigins(dashboardOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod());
+});
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -63,6 +72,7 @@ if (enableSwagger)
 }
 
     app.UseSerilogRequestLogging();
+    app.UseCors(corsPolicyName);
 
     // Apply PathBase early so Swagger and routes respect it
     if (!string.IsNullOrWhiteSpace(pathBase))

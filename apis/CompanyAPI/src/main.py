@@ -2,6 +2,7 @@ from typing import Annotated
 
 import os
 from fastapi import APIRouter, Body, FastAPI, HTTPException, Path, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
@@ -14,6 +15,15 @@ app = FastAPI(
     description=f"DemoSkills Company API (FastAPI). Build branch: {_build_branch}.",
     docs_url="/docs",
     openapi_url="/openapi.json",
+)
+
+_cors_origins = ["http://longranch.com", "http://dashboard.longranch.com"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

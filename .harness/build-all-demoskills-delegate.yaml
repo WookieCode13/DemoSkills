@@ -1,0 +1,139 @@
+pipeline:
+  name: DS - Build All w Docker Delegate
+  identifier: DS_Build_All_w_Docker_Delegate
+  projectIdentifier: demo_skills_project
+  orgIdentifier: default
+  tags: {}
+
+  properties:
+    ci:
+      codebase:
+        connectorRef: git_proj_demoskills
+        build: <+input>
+
+  variables:
+    - name: TARGET_ENV
+      type: String
+      value: <+input>.allowedValues(Development,Production)
+      description: Target environment passed into builds (ASPNETCORE_ENVIRONMENT)
+      required: true
+      default: Development
+    - name: PERFORM_TESTS
+      type: String
+      value: <+input>.allowedValues("Yes","No")
+      description: Run tests? Yes to run, No to skip
+      required: true
+      default: "Yes"
+
+  stages:
+    - stage:
+        name: build-all
+        identifier: build_all
+        type: CI
+        delegateSelectors:
+          - harness-docker-delegate-demoskills
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Docker
+            spec:
+              connectorRef: account.harnessImage
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: aws-docker-login
+                  identifier: aws_docker_login
+                  spec:
+                    shell: Sh
+                    privileged: true
+                    envVariables:
+                      AWS_ACCOUNT_ID: <+secrets.getValue("proj-ds-aws-account-id")>
+                      AWS_ACCESS_KEY_ID: <+secrets.getValue("proj-ds-aws-access-key-id")>
+                      AWS_SECRET_ACCESS_KEY: <+secrets.getValue("proj-ds-aws-secret-access-key")>
+                      AWS_REGION: <+secrets.getValue("proj-ds-aws-region")>
+                    command: |-
+                      echo "Logging into ECR..."
+                      aws ecr get-login-password --region $AWS_REGION \
+                        | docker login \
+                            --username AWS \
+                            --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+              - step:
+                  type: Run
+                  name: build-all-services
+                  identifier: build_all_services
+                  spec:
+                    shell: Sh
+                    privileged: true
+                    envVariables:
+                      AWS_ACCOUNT_ID: <+secrets.getValue("proj-ds-aws-account-id")>
+                      AWS_REGION: <+secrets.getValue("proj-ds-aws-region")>
+                      TARGET_ENV: <+pipeline.variables.TARGET_ENV>
+                      PERFORM_TESTS: <+pipeline.variables.PERFORM_TESTS>
+                    command: |-
+                      set -euo pipefail
+
+                      SERVICES="EmployeeAPI CompanyAPI TaxCalculatorAPI PayAPI ReportAPI Dashboard"
+                      BRANCH="<+codebase.branch>"
+                      GIT_TAG="<+codebase.gitTag>"
+                      SPEC_TAG="<+pipeline.properties.ci.codebase.build.spec.tag>"
+
+                      pick_first() {
+                        for val in "$@"; do
+                          if [ -n "$val" ] && [ "$val" != "null" ] && [ "$val" != "'null'" ]; then
+                            echo "$val"
+                            return 0
+                          fi
+                        done
+                        echo "no_name"
+                      }
+
+                      SAFE_BRANCH=$(echo "$BRANCH" | tr '/' '-')
+                      CLEAN_BRANCH=$(echo "$SAFE_BRANCH" | sed 's/^feature-//')
+                      BUILD_REF="$(pick_first "$SPEC_TAG" "$GIT_TAG" "$CLEAN_BRANCH")"
+
+                      echo "Using BUILD_REF=$BUILD_REF TARGET_ENV=$TARGET_ENV PERFORM_TESTS=$PERFORM_TESTS"
+                      IMAGE_TAGS_FILE=/tmp/image_tags.txt
+                      : > "$IMAGE_TAGS_FILE"
+
+                      for SERVICE_NAME in $SERVICES; do
+                        echo "---- Building $SERVICE_NAME ----"
+                        IMAGE_TAG="${SERVICE_NAME}-${BUILD_REF}.b<+pipeline.sequenceId>"
+
+                        if [ "$PERFORM_TESTS" = "Yes" ]; then
+                          if [ "$SERVICE_NAME" = "CompanyAPI" ] || [ "$SERVICE_NAME" = "ReportAPI" ]; then
+                            docker run --rm -v "$PWD":/work -w /work/apis/$SERVICE_NAME python:3.12-slim sh -c "
+                              set -e
+                              export PYTHONPATH=/work/apis/$SERVICE_NAME
+                              python -m pip install --no-cache-dir -r requirements.txt
+                              python -m pytest -vv
+                            "
+                          elif [ "$SERVICE_NAME" != "Dashboard" ]; then
+                            docker run --rm -v "$PWD":/work -w /work/apis/$SERVICE_NAME mcr.microsoft.com/dotnet/sdk:8.0 sh -c "
+                              set -e
+                              dotnet restore
+                              dotnet build --configuration Release
+                              dotnet test
+                            "
+                          fi
+                        fi
+
+                        if [ "$SERVICE_NAME" = "Dashboard" ]; then
+                          docker build -t demo-image:$IMAGE_TAG -f dashboard/Dockerfile dashboard
+                        else
+                          docker build -t demo-image:$IMAGE_TAG -f apis/$SERVICE_NAME/Dockerfile apis/$SERVICE_NAME
+                        fi
+
+                        FULL_TAG="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/demoskills:$IMAGE_TAG"
+                        docker tag demo-image:$IMAGE_TAG "$FULL_TAG"
+                        docker push "$FULL_TAG"
+
+                        echo "$SERVICE_NAME -> $FULL_TAG" | tee -a "$IMAGE_TAGS_FILE"
+                      done
+
+                      echo "Image tags built and pushed:"
+                      cat "$IMAGE_TAGS_FILE"
