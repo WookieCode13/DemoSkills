@@ -22,6 +22,15 @@ try
 
     builder.Services.AddControllers();
     builder.Services.AddRouting(options => options.LowercaseUrls = true);
+    const string corsPolicyName = "DashboardCors";
+    var dashboardOrigins = new[] { "http://longranch.com", "http://dashboard.longranch.com" };
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy(corsPolicyName, policy =>
+            policy.WithOrigins(dashboardOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod());
+    });
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(c =>
     {
@@ -50,6 +59,7 @@ try
     }
 
     app.UseSerilogRequestLogging();
+    app.UseCors(corsPolicyName);
     app.UseAuthorization();
 
     app.MapControllers();

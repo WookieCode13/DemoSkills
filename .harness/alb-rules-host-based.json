@@ -3,14 +3,14 @@
     {
       "priority": 50,
       "hosts": ["company.longranch.com"],
-      "paths": ["/swagger*", "/docs*"],
-      "targetPath": "/companies/docs"
+      "paths": ["/swagger*"],
+      "targetPath": "/docs"
     },
     {
       "priority": 51,
       "hosts": ["report.longranch.com"],
-      "paths": ["/swagger*", "/docs*"],
-      "targetPath": "/reports/docs"
+      "paths": ["/swagger*"],
+      "targetPath": "/docs"
     }
   ],
   "forwards": [

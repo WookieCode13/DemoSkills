@@ -43,6 +43,7 @@ pipeline:
         identifier: setup
         type: CI
         when:
+          pipelineStatus: Success
           condition: <+pipeline.variables.SERVICE_NAME> != "All"
         delegateSelectors:
           - harness-docker-delegate-demoskills
@@ -104,6 +105,7 @@ pipeline:
         identifier: build_and_test
         type: CI
         when:
+          pipelineStatus: Success
           condition: <+pipeline.variables.SERVICE_NAME> != "All"
         delegateSelectors:
           - harness-docker-delegate-demoskills        
@@ -162,6 +164,7 @@ pipeline:
         identifier: docker_build_and_push
         type: CI
         when:
+          pipelineStatus: Success
           condition: <+pipeline.variables.SERVICE_NAME> != "All"
         delegateSelectors:
           - harness-docker-delegate-demoskills
@@ -245,6 +248,7 @@ pipeline:
         identifier: post
         type: CI
         when:
+          pipelineStatus: Success
           condition: <+pipeline.variables.SERVICE_NAME> != "All"
         delegateSelectors:
           - harness-docker-delegate-demoskills
@@ -279,6 +283,7 @@ pipeline:
         identifier: build_all
         type: CI
         when:
+          pipelineStatus: Success
           condition: <+pipeline.variables.SERVICE_NAME> == "All"
         delegateSelectors:
           - harness-docker-delegate-demoskills
@@ -325,7 +330,7 @@ pipeline:
                       TARGET_ENV: <+pipeline.variables.TARGET_ENV>
                       PERFORM_TESTS: <+pipeline.variables.PERFORM_TESTS>
                     command: |-
-                      set -euo pipefail
+                      set -eu
 
                       SERVICES="EmployeeAPI CompanyAPI TaxCalculatorAPI PayAPI ReportAPI Dashboard"
                       BRANCH="<+codebase.branch>"
@@ -348,7 +353,11 @@ pipeline:
 
                       echo "Using BUILD_REF=$BUILD_REF TARGET_ENV=$TARGET_ENV PERFORM_TESTS=$PERFORM_TESTS"
                       IMAGE_TAGS_FILE=/tmp/image_tags.txt
+                      IMAGE_TAGS_ONLY=/tmp/image_tags_only.txt
+                      IMAGE_TAGS_SHORT=/tmp/image_tags_short.txt
                       : > "$IMAGE_TAGS_FILE"
+                      : > "$IMAGE_TAGS_ONLY"
+                      : > "$IMAGE_TAGS_SHORT"
 
                       for SERVICE_NAME in $SERVICES; do
                         echo "---- Building $SERVICE_NAME ----"
@@ -383,7 +392,18 @@ pipeline:
                         docker push "$FULL_TAG"
 
                         echo "$SERVICE_NAME -> $FULL_TAG" | tee -a "$IMAGE_TAGS_FILE"
+                        echo "$FULL_TAG" >> "$IMAGE_TAGS_ONLY"
+                        echo "$IMAGE_TAG" >> "$IMAGE_TAGS_SHORT"
                       done
 
-                      echo "Image tags built and pushed:"
+                      printf '\033[32m------------------------------------------------------------\033[0m\n'
+                      printf '\033[32mBuilt & pushed (service -> tag):\033[0m\n'
                       cat "$IMAGE_TAGS_FILE"
+                      printf '\033[32mShort tags (copy/paste):\033[0m\n'
+                      cat "$IMAGE_TAGS_SHORT"
+                      printf '\033[32mShort tags (single line):\033[0m\n'
+                      tr '\n' ' ' < "$IMAGE_TAGS_SHORT"
+                      echo
+                      printf '\033[32mFull tags (copy/paste):\033[0m\n'
+                      cat "$IMAGE_TAGS_ONLY"
+                      printf '\033[32m------------------------------------------------------------\033[0m\n'
