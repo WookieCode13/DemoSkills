@@ -32,6 +32,11 @@ class HealthResponse(BaseModel):
     service: str
 
 
+class TodoResponse(BaseModel):
+    status: str
+    message: str
+
+
 class Company(BaseModel):
     id: int = Field(..., examples=[1])
     name: str = Field(..., min_length=1, examples=["Demo Skills LLC"])
@@ -43,11 +48,8 @@ class CompanyCreateRequest(BaseModel):
     industry: str | None = Field(default=None, examples=["Demo Skills 123"])
 
 
-_companies: dict[int, Company] = {
-    1: Company(id=1, name="Demo Skills LLC", industry="Tech"),
-    2: Company(id=2, name="Example Co", industry="Consulting"),
-}
-_next_company_id = max(_companies.keys()) + 1
+_companies: dict[int, Company] = {}
+_next_company_id = 1
 
 
 @app.get("/", tags=["ops"])
@@ -73,31 +75,19 @@ def health() -> HealthResponse:
     return HealthResponse(status="ok", service="companyapi")
 
 
-@router.get(
-    "",
-    response_model=list[Company],
-    summary="List companies",
-)
-def list_companies() -> list[Company]:
-    # TODO: replace in-memory stub with real data source.
-    return sorted(_companies.values(), key=lambda c: c.id)
+@router.get("", response_model=TodoResponse, summary="List companies")
+def list_companies() -> TodoResponse:
+    return TodoResponse(status="todo", message="TODO: load companies from the database")
 
 
-@router.get(
-    "/{company_id}",
-    response_model=Company,
-    summary="Get company by id",
-)
+@router.get("/{company_id}", response_model=TodoResponse, summary="Get company by id")
 def get_company(
     company_id: Annotated[int, Path(..., ge=1, description="Company ID")]
-) -> Company:
-    company = _companies.get(company_id)
-    if company is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Company {company_id} not found",
-        )
-    return company
+) -> TodoResponse:
+    return TodoResponse(
+        status="todo",
+        message=f"TODO: load company {company_id} from the database",
+    )
 
 
 @router.post(

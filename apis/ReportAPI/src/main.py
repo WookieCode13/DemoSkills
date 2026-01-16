@@ -31,6 +31,11 @@ class HealthResponse(BaseModel):
     service: str
 
 
+class TodoResponse(BaseModel):
+    status: str
+    message: str
+
+
 class Report(BaseModel):
     id: int = Field(..., examples=[1])
     name: str = Field(..., min_length=1, examples=["Quarterly Summary"])
@@ -69,23 +74,19 @@ def health() -> HealthResponse:
     return HealthResponse(status="ok", service="reportapi")
 
 
-@router.get("", response_model=list[Report], summary="List reports")
-def list_reports() -> list[Report]:
-    # TODO: replace in-memory stub with real data source.
-    return sorted(_reports.values(), key=lambda r: r.id)
+@router.get("", response_model=TodoResponse, summary="List reports")
+def list_reports() -> TodoResponse:
+    return TodoResponse(status="todo", message="TODO: load reports from the database")
 
 
-@router.get("/{report_id}", response_model=Report, summary="Get report by id")
+@router.get("/{report_id}", response_model=TodoResponse, summary="Get report by id")
 def get_report(
     report_id: Annotated[int, Path(..., ge=1, description="Report ID")]
-) -> Report:
-    report = _reports.get(report_id)
-    if report is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Report {report_id} not found",
-        )
-    return report
+) -> TodoResponse:
+    return TodoResponse(
+        status="todo",
+        message=f"TODO: load report {report_id} from the database",
+    )
 
 
 @router.post("", response_model=Report, status_code=status.HTTP_201_CREATED, summary="Create report")

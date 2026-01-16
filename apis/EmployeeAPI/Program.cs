@@ -1,4 +1,6 @@
 using System;
+using EmployeeAPI.Migrations;
+using FluentMigrator.Runner;
 using Microsoft.OpenApi.Models;
 using Serilog;
 
@@ -45,6 +47,16 @@ builder.Services.AddSwaggerGen(c =>
         Description = $"Build branch: {buildBranch}"
     });
 });
+
+    builder.Services.Configure<MigrationOptions>(builder.Configuration.GetSection("Migrations"));
+    builder.Services
+        .AddFluentMigratorCore()
+        .ConfigureRunner(runner => runner
+            .AddPostgres()
+            .WithGlobalConnectionString(builder.Configuration.GetConnectionString("Default") ?? string.Empty)
+            .ScanIn(typeof(MigrationHostedService).Assembly).For.Migrations())
+        .AddLogging(logging => logging.AddFluentMigratorConsole());
+    builder.Services.AddHostedService<MigrationHostedService>();
 
     // Optional: serve the app under a sub-path (e.g., "/employee")
     var pathBase = builder.Configuration["PathBase"];
