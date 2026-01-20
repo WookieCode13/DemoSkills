@@ -1,35 +1,32 @@
 const protocol = window.location.protocol || "http:";
-const host = window.location.hostname || "longranch.com";
-const params = new URLSearchParams(window.location.search);
-const overrideBaseDomain = params.get("baseDomain");
-const baseDomain =
-  overrideBaseDomain || (host.startsWith("dashboard.") ? host.replace("dashboard.", "") : host);
+const host = window.location.host || "localhost";
+const baseUrl = `${protocol}//${host}`;
 
 const services = [
   {
     name: "Employee",
-    healthUrl: `${protocol}//employee.${baseDomain}/api/v1/employees/health`,
-    swaggerUrl: `${protocol}//employee.${baseDomain}/swagger`,
+    healthUrl: `${baseUrl}/employee/api/v1/employees/health`,
+    swaggerUrl: `${baseUrl}/employee/swagger`,
   },
   {
     name: "Company",
-    healthUrl: `${protocol}//company.${baseDomain}/api/v1/companies/health`,
-    swaggerUrl: `${protocol}//company.${baseDomain}/docs`,
+    healthUrl: `${baseUrl}/company/api/v1/companies/health`,
+    swaggerUrl: `${baseUrl}/company/docs`,
   },
   {
     name: "Pay",
-    healthUrl: `${protocol}//pay.${baseDomain}/api/v1/pay/health`,
-    swaggerUrl: `${protocol}//pay.${baseDomain}/swagger`,
+    healthUrl: `${baseUrl}/pay/api/v1/pay/health`,
+    swaggerUrl: `${baseUrl}/pay/swagger`,
   },
   {
     name: "Tax",
-    healthUrl: `${protocol}//tax.${baseDomain}/api/v1/taxes/health`,
-    swaggerUrl: `${protocol}//tax.${baseDomain}/swagger`,
+    healthUrl: `${baseUrl}/tax/api/v1/taxes/health`,
+    swaggerUrl: `${baseUrl}/tax/swagger`,
   },
   {
     name: "Report",
-    healthUrl: `${protocol}//report.${baseDomain}/api/v1/reports/health`,
-    swaggerUrl: `${protocol}//report.${baseDomain}/docs`,
+    healthUrl: `${baseUrl}/report/api/v1/reports/health`,
+    swaggerUrl: `${baseUrl}/report/docs`,
   },
 ];
 
