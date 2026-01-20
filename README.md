@@ -61,6 +61,28 @@ This project uses AI tools to help design, build, and automate code:
 
 ---
 
+## Local Docker (Linux)
+
+Local compose uses subdomain routing to mirror AWS. Map your LAN IP to a local domain (for example, `longranch.local`) in your hosts file, then run the stack with env vars.
+
+Required env vars (no secrets in repo):
+- `DEMOSKILLS_POSTGRES_DB`
+- `DEMOSKILLS_POSTGRES_USER`
+- `DEMOSKILLS_POSTGRES_PASSWORD`
+
+Example hosts entries:
+- `longranch.local`
+- `employee.longranch.local`
+- `company.longranch.local`
+- `pay.longranch.local`
+- `tax.longranch.local`
+- `report.longranch.local`
+
+Start:
+```bash
+docker compose up --build -d
+```
+
 ## Folder Overview
 
 - `/apis` – backend API projects
