@@ -1,0 +1,54 @@
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx/demoskills.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - dashboard
+      - employeeapi
+      - companyapi
+      - payapi
+      - taxcalculatorapi
+      - reportapi
+
+  dashboard:
+    build:
+      context: ./dashboard
+    image: demoskills-dashboard:local
+
+  employeeapi:
+    build:
+      context: ./apis/EmployeeAPI
+    image: demoskills-employeeapi:local
+    environment:
+      ConnectionStrings__Default: ${DemoSkills__ConnectionStrings__Default}
+
+  companyapi:
+    build:
+      context: ./apis/CompanyAPI
+    image: demoskills-companyapi:local
+    environment:
+      DATABASE_URL: ${DemoSkills__DATABASE_URL}
+
+  payapi:
+    build:
+      context: ./apis/PayAPI
+    image: demoskills-payapi:local
+    environment:
+      ConnectionStrings__Default: ${DemoSkills__ConnectionStrings__Default}
+
+  taxcalculatorapi:
+    build:
+      context: ./apis/TaxCalculatorAPI
+    image: demoskills-taxcalculatorapi:local
+    environment:
+      ConnectionStrings__Default: ${DemoSkills__ConnectionStrings__Default}
+
+  reportapi:
+    build:
+      context: ./apis/ReportAPI
+    image: demoskills-reportapi:local
+    environment:
+      DATABASE_URL: ${DemoSkills__DATABASE_URL}
