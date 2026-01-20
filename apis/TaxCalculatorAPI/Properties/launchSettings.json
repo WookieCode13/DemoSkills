@@ -9,7 +9,7 @@
       "applicationUrl": "http://localhost:5018",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ConnectionStrings__Default": "Host=wookie;Port=5432;Database=demoskills_local;Username=demoskills;Password=demoskills_pw"
+        "ConnectionStrings__Default": "Host=wookie;Port=5432;Database=demoskills_local;Username=demoskills;Password=SET_IN_ENV"
       }
     },
     "https": {
@@ -20,7 +20,7 @@
       "applicationUrl": "https://localhost:7112;http://localhost:5018",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ConnectionStrings__Default": "Host=wookie;Port=5432;Database=demoskills_local;Username=demoskills;Password=demoskills_pw"
+        "ConnectionStrings__Default": "Host=wookie;Port=5432;Database=demoskills_local;Username=demoskills;Password=SET_IN_ENV"
       }
     }
   }

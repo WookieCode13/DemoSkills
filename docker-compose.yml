@@ -6,6 +6,7 @@ services:
     volumes:
       - ./docker/nginx/demoskills.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
+      - postgres
       - dashboard
       - employeeapi
       - companyapi
@@ -23,32 +24,57 @@ services:
       context: ./apis/EmployeeAPI
     image: demoskills-employeeapi:local
     environment:
-      ConnectionStrings__Default: ${DemoSkills__ConnectionStrings__Default}
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=${DEMOSKILLS_POSTGRES_DB?};Username=${DEMOSKILLS_POSTGRES_USER?};Password=${DEMOSKILLS_POSTGRES_PASSWORD?}
+    depends_on:
+      - postgres
 
   companyapi:
     build:
       context: ./apis/CompanyAPI
     image: demoskills-companyapi:local
     environment:
-      DATABASE_URL: ${DemoSkills__DATABASE_URL}
+      DATABASE_URL: postgresql+psycopg://${DEMOSKILLS_POSTGRES_USER?}:${DEMOSKILLS_POSTGRES_PASSWORD?}@postgres:5432/${DEMOSKILLS_POSTGRES_DB?}
+    depends_on:
+      - postgres
 
   payapi:
     build:
       context: ./apis/PayAPI
     image: demoskills-payapi:local
     environment:
-      ConnectionStrings__Default: ${DemoSkills__ConnectionStrings__Default}
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=${DEMOSKILLS_POSTGRES_DB?};Username=${DEMOSKILLS_POSTGRES_USER?};Password=${DEMOSKILLS_POSTGRES_PASSWORD?}
+    depends_on:
+      - postgres
 
   taxcalculatorapi:
     build:
       context: ./apis/TaxCalculatorAPI
     image: demoskills-taxcalculatorapi:local
     environment:
-      ConnectionStrings__Default: ${DemoSkills__ConnectionStrings__Default}
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=${DEMOSKILLS_POSTGRES_DB?};Username=${DEMOSKILLS_POSTGRES_USER?};Password=${DEMOSKILLS_POSTGRES_PASSWORD?}
+    depends_on:
+      - postgres
 
   reportapi:
     build:
       context: ./apis/ReportAPI
     image: demoskills-reportapi:local
     environment:
-      DATABASE_URL: ${DemoSkills__DATABASE_URL}
+      DATABASE_URL: postgresql+psycopg://${DEMOSKILLS_POSTGRES_USER?}:${DEMOSKILLS_POSTGRES_PASSWORD?}@postgres:5432/${DEMOSKILLS_POSTGRES_DB?}
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: demoskills-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${DEMOSKILLS_POSTGRES_DB?}
+      POSTGRES_USER: ${DEMOSKILLS_POSTGRES_USER?}
+      POSTGRES_PASSWORD: ${DEMOSKILLS_POSTGRES_PASSWORD?}
+    volumes:
+      - demoskills_pgdata:/var/lib/postgresql/data
+
+volumes:
+  demoskills_pgdata:
