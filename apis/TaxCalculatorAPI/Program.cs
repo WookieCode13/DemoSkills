@@ -23,7 +23,16 @@ try
     builder.Services.AddControllers();
     builder.Services.AddRouting(options => options.LowercaseUrls = true);
     const string corsPolicyName = "DashboardCors";
-    var dashboardOrigins = new[] { "http://longranch.com", "http://dashboard.longranch.com" };
+    var dashboardOrigins = new List<string>
+    {
+        "http://longranch.com",
+        "http://dashboard.longranch.com",
+    };
+    if (builder.Environment.IsDevelopment())
+    {
+        dashboardOrigins.Add("http://longranch.local");
+        dashboardOrigins.Add("http://dashboard.longranch.local");
+    }
     builder.Services.AddCors(options =>
     {
         options.AddPolicy(corsPolicyName, policy =>

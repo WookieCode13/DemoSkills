@@ -19,7 +19,13 @@ app = FastAPI(
     root_path=_root_path,
 )
 
-_cors_origins = ["http://longranch.com", "http://dashboard.longranch.com"]
+_env = os.getenv("ASPNETCORE_ENVIRONMENT", "production")
+_cors_origins = [
+    "http://longranch.com",
+    "http://dashboard.longranch.com",
+]
+if _env.lower() == "development":
+    _cors_origins.extend(["http://longranch.local", "http://dashboard.longranch.local"])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
