@@ -7,6 +7,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
 _build_branch = os.getenv("BUILD_BRANCH", "local")
+_root_path = os.getenv("ROOT_PATH", "")
 
 app = FastAPI(
     title="ReportAPI",
@@ -14,6 +15,7 @@ app = FastAPI(
     description=f"DemoSkills Report API (FastAPI). Build branch: {_build_branch}.",
     docs_url="/docs",
     openapi_url="/openapi.json",
+    root_path=_root_path,
 )
 
 _cors_origins = ["http://longranch.com", "http://dashboard.longranch.com"]
