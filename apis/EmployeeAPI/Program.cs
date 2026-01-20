@@ -41,7 +41,7 @@ if (builder.Environment.IsDevelopment())
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(corsPolicyName, policy =>
-        policy.WithOrigins(dashboardOrigins)
+        policy.WithOrigins(dashboardOrigins.ToArray())
             .AllowAnyHeader()
             .AllowAnyMethod());
 });

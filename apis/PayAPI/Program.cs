@@ -35,10 +35,10 @@ try
     }
     builder.Services.AddCors(options =>
     {
-        options.AddPolicy(corsPolicyName, policy =>
-            policy.WithOrigins(dashboardOrigins)
-                .AllowAnyHeader()
-                .AllowAnyMethod());
+    options.AddPolicy(corsPolicyName, policy =>
+        policy.WithOrigins(dashboardOrigins.ToArray())
+            .AllowAnyHeader()
+            .AllowAnyMethod());
     });
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(c =>
