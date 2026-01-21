@@ -24,7 +24,7 @@ _cors_origins = [
     "http://dashboard.longranch.com",
 ]
 if _env.lower() == "development":
-    _cors_origins.extend(["http://longranch.local", "http://dashboard.longranch.local"])
+    _cors_origins.extend(["http://longranch.wookie", "http://dashboard.longranch.wookie"])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,

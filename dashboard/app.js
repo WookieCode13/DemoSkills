@@ -1,5 +1,5 @@
 const protocol = window.location.protocol || "http:";
-const host = window.location.hostname || "longranch.local";
+const host = window.location.hostname || "longranch.wookie";
 const params = new URLSearchParams(window.location.search);
 const overrideBaseDomain = params.get("baseDomain");
 const baseDomain =

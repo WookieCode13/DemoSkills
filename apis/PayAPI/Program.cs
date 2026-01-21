@@ -30,8 +30,8 @@ try
     };
     if (builder.Environment.IsDevelopment())
     {
-        dashboardOrigins.Add("http://longranch.local");
-        dashboardOrigins.Add("http://dashboard.longranch.local");
+        dashboardOrigins.Add("http://longranch.wookie");
+        dashboardOrigins.Add("http://dashboard.longranch.wookie");
     }
     builder.Services.AddCors(options =>
     {
