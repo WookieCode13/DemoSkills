@@ -75,14 +75,30 @@ ensure_alembic() {
 
 if [ -f "apis/CompanyAPI/alembic.ini" ]; then
   ensure_alembic
+  if [ -z "${DEMOSKILLS_DATABASE_URL:-}" ]; then
+    if [ -z "${DEMOSKILLS_POSTGRES_DB:-}" ] || [ -z "${DEMOSKILLS_POSTGRES_USER:-}" ] || [ -z "${DEMOSKILLS_POSTGRES_PASSWORD:-}" ]; then
+      echo "DEMOSKILLS_DATABASE_URL not set and DEMOSKILLS_POSTGRES_* vars are missing."
+      echo "Set DEMOSKILLS_DATABASE_URL or DEMOSKILLS_POSTGRES_DB/USER/PASSWORD before running migrations."
+      exit 1
+    fi
+    export DEMOSKILLS_DATABASE_URL="postgresql+psycopg://${DEMOSKILLS_POSTGRES_USER}:${DEMOSKILLS_POSTGRES_PASSWORD}@postgres:5432/${DEMOSKILLS_POSTGRES_DB}"
+  fi
   echo "Running CompanyAPI migrations..."
-  (cd apis/CompanyAPI && alembic -c alembic.ini upgrade head)
+  (cd apis/CompanyAPI && DATABASE_URL="${DEMOSKILLS_DATABASE_URL}" alembic -c alembic.ini upgrade head)
 fi
 
 if [ -f "apis/ReportAPI/alembic.ini" ]; then
   ensure_alembic
+  if [ -z "${DEMOSKILLS_DATABASE_URL:-}" ]; then
+    if [ -z "${DEMOSKILLS_POSTGRES_DB:-}" ] || [ -z "${DEMOSKILLS_POSTGRES_USER:-}" ] || [ -z "${DEMOSKILLS_POSTGRES_PASSWORD:-}" ]; then
+      echo "DEMOSKILLS_DATABASE_URL not set and DEMOSKILLS_POSTGRES_* vars are missing."
+      echo "Set DEMOSKILLS_DATABASE_URL or DEMOSKILLS_POSTGRES_DB/USER/PASSWORD before running migrations."
+      exit 1
+    fi
+    export DEMOSKILLS_DATABASE_URL="postgresql+psycopg://${DEMOSKILLS_POSTGRES_USER}:${DEMOSKILLS_POSTGRES_PASSWORD}@postgres:5432/${DEMOSKILLS_POSTGRES_DB}"
+  fi
   echo "Running ReportAPI migrations..."
-  (cd apis/ReportAPI && alembic -c alembic.ini upgrade head)
+  (cd apis/ReportAPI && DATABASE_URL="${DEMOSKILLS_DATABASE_URL}" alembic -c alembic.ini upgrade head)
 fi
 
 echo "Done."
