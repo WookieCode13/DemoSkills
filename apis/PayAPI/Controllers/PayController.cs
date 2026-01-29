@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using PayAPI.Models;
+using PayAPI.Contracts;
 
 namespace PayAPI.Controllers;
 

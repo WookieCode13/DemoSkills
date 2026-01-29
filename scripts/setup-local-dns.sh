@@ -21,7 +21,6 @@ if [[ ! "$confirm_branch" =~ ^[Yy]$ ]]; then
 fi
 
 echo "Updating repo..."
-git fetch
 git pull
 
 read -r -p "Refresh dnsmasq mappings? (y/N): " refresh_dns

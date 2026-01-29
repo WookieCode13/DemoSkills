@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 using EmployeeAPI.Controllers;
-using EmployeeAPI.Models;
+using EmployeeAPI.Contracts;
 using System.Net;
 
 namespace EmployeeAPI.UnitTests.Controllers

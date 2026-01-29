@@ -1,3 +1,3 @@
-namespace TaxCalculatorAPI.Models;
+namespace PayAPI.Contracts;
 
 public record HealthResponse(string Status, string Service, string Timestamp);
