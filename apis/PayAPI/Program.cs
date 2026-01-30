@@ -23,13 +23,22 @@ try
     builder.Services.AddControllers();
     builder.Services.AddRouting(options => options.LowercaseUrls = true);
     const string corsPolicyName = "DashboardCors";
-    var dashboardOrigins = new[] { "http://longranch.com", "http://dashboard.longranch.com" };
+    var dashboardOrigins = new List<string>
+    {
+        "http://longranch.com",
+        "http://dashboard.longranch.com",
+    };
+    if (builder.Environment.IsDevelopment())
+    {
+        dashboardOrigins.Add("http://longranch.wookie");
+        dashboardOrigins.Add("http://dashboard.longranch.wookie");
+    }
     builder.Services.AddCors(options =>
     {
-        options.AddPolicy(corsPolicyName, policy =>
-            policy.WithOrigins(dashboardOrigins)
-                .AllowAnyHeader()
-                .AllowAnyMethod());
+    options.AddPolicy(corsPolicyName, policy =>
+        policy.WithOrigins(dashboardOrigins.ToArray())
+            .AllowAnyHeader()
+            .AllowAnyMethod());
     });
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(c =>

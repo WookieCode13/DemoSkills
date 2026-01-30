@@ -8,8 +8,6 @@ GET http://employee.longranch.com/api/v1/employees/health
 GET http://employee.longranch.com/swagger
 ###
 GET http://employee.longranch.com/swagger/v1/swagger.json
-###
-GET http://employee.longranch.com/api/v1/db/ping
 
 
 ### Pay

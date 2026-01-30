@@ -401,8 +401,10 @@ pipeline:
                       cat "$IMAGE_TAGS_FILE"
                       printf '\033[32mShort tags (copy/paste):\033[0m\n'
                       cat "$IMAGE_TAGS_SHORT"
-                      printf '\033[32mShort tags (single line):\033[0m\n'
+                      printf '\033[33mShort tags (single line):\033[0m\n'
+                      printf '\033[33m'
                       tr '\n' ' ' < "$IMAGE_TAGS_SHORT"
+                      printf '\033[0m'
                       echo
                       printf '\033[32mFull tags (copy/paste):\033[0m\n'
                       cat "$IMAGE_TAGS_ONLY"

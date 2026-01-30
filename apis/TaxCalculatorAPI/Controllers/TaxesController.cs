@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using TaxCalculatorAPI.Models;
+using TaxCalculatorAPI.Contracts;
 
 namespace TaxCalculatorAPI.Controllers;
 

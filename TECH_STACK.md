@@ -15,8 +15,10 @@
   - Key Packages:
     - fastapi
     - uvicorn
-    - httpx (testing)
     - pytest
+
+### Frontend
+- Dashboard: static HTML/CSS/JS served by nginx
 
 ### Database
 - PostgreSQL (shared across APIs)
@@ -28,15 +30,15 @@
   - Base Images:
     - mcr.microsoft.com/dotnet/aspnet:8.0
     - python:3.12-slim
+    - nginx:1.27-alpine (dashboard)
   - Multi-stage builds for optimization
 
 - AWS Services
-  - ALB: Ingress and path routing
+  - ALB: Ingress and routing (host-based today)
   - ECS (Fargate): Container orchestration
   - ECR: Image registry
   - RDS: Managed PostgreSQL
   - Lambda: Serverless functions (optional)
-  - RDS: Managed PostgreSQL
 
 ## Development Tools
 ### IDE and Version Control
@@ -56,12 +58,12 @@
 - Unit Testing
   - C#: xUnit
   - Python: pytest
-  - Coverage: 80% minimum
+  - Coverage: 80% minimum (goal)
 
 - BDD Testing
-  - C#: SpecFlow
-  - Python: pytest-bdd
-  - Gherkin specs in /tests/features/
+  - C#: SpecFlow (planned)
+  - Python: pytest-bdd (planned)
+  - Gherkin specs in /tests/features/ (planned)
 
 ### CI/CD (Harness)
 - Pipeline Types:

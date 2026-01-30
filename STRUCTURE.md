@@ -12,27 +12,34 @@ graph TD
 ```
 DemoSkills/
   README.md              # Project overview and status
-  PROJECT_PLAN.md        # Development roadmap
+  PLAN.md                # Development roadmap
+  GOALS.md               # Short/long-term goals
   TECH_STACK.md          # Technology details
   SETUP_NOTES.md         # Environment setup
   AI_NOTES.md            # AI development guide
 
   apis/                  # REST API projects
     EmployeeAPI/
-      src/
-      tests/
+      Controllers/
+      Models/
     CompanyAPI/
       src/
       tests/
     PayAPI/
-      src/
-      tests/
+      Controllers/
+      Models/
     TaxCalculatorAPI/
-      src/
-      tests/
+      Controllers/
+      Models/
     ReportAPI/
       src/
       tests/
+
+  dashboard/             # Static UI (nginx)
+    index.html
+    styles.css
+    app.js
+    Dockerfile
 
   lambdas/               # Serverless functions
     TimeClockLambda/
@@ -42,9 +49,9 @@ DemoSkills/
       src/
       tests/
 
-  docker/                # Containerization
-    api-base/            # Base images
-    services/            # Service-specific
+  docker/                # Containerization (legacy experiments)
+    api-base/
+    services/
 
   .harness/              # CI/CD pipelines and helpers
   infra/                 # Optional infrastructure notes/scripts

@@ -24,6 +24,14 @@ pipeline:
       type: String
       value: <+input>.default(employeeapi,companyapi,payapi,taxcalculatorapi,reportapi,dashboard)
       description: Comma-separated short service names (e.g., employeeapi,companyapi,payapi,taxcalculatorapi,reportapi,dashboard).
+    - name: EC2_INSTANCE_NAMES
+      type: String
+      value: <+input>.default(Local-To-Postgres-Connection-SSM)
+      description: Comma-separated EC2 Name tags to manage.
+    - name: EC2_ACTION
+      type: String
+      value: <+input>.allowedValues("stop","start")
+      description: Action to apply to EC2 instances.
 
   stages:
     - stage:
@@ -128,3 +136,65 @@ pipeline:
                       printf '  - %s\n' "${SERVICE_NAMES[@]}"
                       printf '\033[32m%s\033[0m\n' "Scaling complete."
                       printf '\033[32m------------------------------------------------------------\033[0m\n'
+              - step:
+                  type: Run
+                  name: Manage EC2 Instance
+                  identifier: manage_ec2_instance
+                  spec:
+                    shell: Sh
+                    image: amazon/aws-cli:2.23.4
+                    envVariables:
+                      AWS_ACCOUNT_ID: <+secrets.getValue("proj-ds-aws-account-id")>
+                      AWS_ACCESS_KEY_ID: <+secrets.getValue("proj-ds-aws-access-key-id")>
+                      AWS_SECRET_ACCESS_KEY: <+secrets.getValue("proj-ds-aws-secret-access-key")>
+                      AWS_REGION: <+secrets.getValue("proj-ds-aws-region")>
+                    command: |-
+                      set -euo pipefail
+
+                      ACTION="<+pipeline.variables.EC2_ACTION>"
+                      INSTANCE_NAMES_RAW="<+pipeline.variables.EC2_INSTANCE_NAMES>"
+
+                      if [ -z "$INSTANCE_NAMES_RAW" ] || [ "$INSTANCE_NAMES_RAW" = "null" ] || [ "$INSTANCE_NAMES_RAW" = "\"\"" ]; then
+                        echo "No EC2 instance names provided. Skipping."
+                        exit 0
+                      fi
+
+                      IFS=',' read -r -a INSTANCE_NAMES <<< "$INSTANCE_NAMES_RAW"
+                      if [ "${#INSTANCE_NAMES[@]}" -eq 0 ]; then
+                        echo "No EC2 instance names provided. Skipping."
+                        exit 0
+                      fi
+
+                      case "$ACTION" in
+                        stop|start)
+                          ;;
+                        *)
+                          echo "Unsupported EC2 action: $ACTION (use stop or start)."
+                          exit 1
+                          ;;
+                      esac
+
+                      for name in "${INSTANCE_NAMES[@]}"; do
+                        inst_name="$(echo "$name" | xargs)"
+                        [ -z "$inst_name" ] && continue
+                        instance_ids=$(aws ec2 describe-instances \
+                          --filters "Name=tag:Name,Values=${inst_name}" \
+                                   "Name=instance-state-name,Values=pending,running,stopping,stopped" \
+                          --query 'Reservations[].Instances[].InstanceId' \
+                          --output text 2>/dev/null || true)
+                        if [ -z "$instance_ids" ] || [ "$instance_ids" = "None" ]; then
+                          echo "EC2 instance not found (Name=${inst_name})."
+                          continue
+                        fi
+
+                        echo "${ACTION^} EC2 instance(s) for ${inst_name}: ${instance_ids}"
+                        if [ "$ACTION" = "stop" ]; then
+                          aws ec2 stop-instances --instance-ids ${instance_ids} >/tmp/ec2-stop.json
+                          aws ec2 wait instance-stopped --instance-ids ${instance_ids}
+                          echo "Stopped."
+                        else
+                          aws ec2 start-instances --instance-ids ${instance_ids} >/tmp/ec2-start.json
+                          aws ec2 wait instance-running --instance-ids ${instance_ids}
+                          echo "Started."
+                        fi
+                      done

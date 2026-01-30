@@ -7,6 +7,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
 _build_branch = os.getenv("BUILD_BRANCH", "local")
+_root_path = os.getenv("ROOT_PATH", "")
 
 app = FastAPI(
     title="ReportAPI",
@@ -14,9 +15,16 @@ app = FastAPI(
     description=f"DemoSkills Report API (FastAPI). Build branch: {_build_branch}.",
     docs_url="/docs",
     openapi_url="/openapi.json",
+    root_path=_root_path,
 )
 
-_cors_origins = ["http://longranch.com", "http://dashboard.longranch.com"]
+_env = os.getenv("ASPNETCORE_ENVIRONMENT", "production")
+_cors_origins = [
+    "http://longranch.com",
+    "http://dashboard.longranch.com",
+]
+if _env.lower() == "development":
+    _cors_origins.extend(["http://longranch.wookie", "http://dashboard.longranch.wookie"])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
@@ -29,6 +37,11 @@ app.add_middleware(
 class HealthResponse(BaseModel):
     status: str
     service: str
+
+
+class TodoResponse(BaseModel):
+    status: str
+    message: str
 
 
 class Report(BaseModel):
@@ -69,23 +82,19 @@ def health() -> HealthResponse:
     return HealthResponse(status="ok", service="reportapi")
 
 
-@router.get("", response_model=list[Report], summary="List reports")
-def list_reports() -> list[Report]:
-    # TODO: replace in-memory stub with real data source.
-    return sorted(_reports.values(), key=lambda r: r.id)
+@router.get("", response_model=TodoResponse, summary="List reports")
+def list_reports() -> TodoResponse:
+    return TodoResponse(status="todo", message="TODO: load reports from the database")
 
 
-@router.get("/{report_id}", response_model=Report, summary="Get report by id")
+@router.get("/{report_id}", response_model=TodoResponse, summary="Get report by id")
 def get_report(
     report_id: Annotated[int, Path(..., ge=1, description="Report ID")]
-) -> Report:
-    report = _reports.get(report_id)
-    if report is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Report {report_id} not found",
-        )
-    return report
+) -> TodoResponse:
+    return TodoResponse(
+        status="todo",
+        message=f"TODO: load report {report_id} from the database",
+    )
 
 
 @router.post("", response_model=Report, status_code=status.HTTP_201_CREATED, summary="Create report")

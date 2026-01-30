@@ -2,6 +2,8 @@
 
 Main goal is to build a demo portfolio project that showcases my resume skills. The plan is to deploy several simple APIs, provide Swagger documentation, and eventually add a frontend. I will incorporate AWS services such as Lambda, SNS, SQS, and S3. The tech stack will include VS Code (C# and Python), GitHub, Harness, and Docker. For container orchestration, I will use ECS with Fargate instead of EKS to reduce costs. The project will be designed for easy deployment and teardown, making it ideal for interviews and demonstrations.
 
+1.14.2026 - Update, due to AWS cost and limited time going to leave gateways and seperate backends for later. I may create 1 pass thru back end to the database, and maybe consider my current apis as gateways.
+
 ## 🧩 Phase 0 — Setup
 
 - [x] Create project folder structure
@@ -40,7 +42,7 @@ Main goal is to build a demo portfolio project that showcases my resume skills. 
 
 - [x] Create Harness pipeline YAML
 - [x] Deploy API to AWS
-- [ ] Create teardown pipeline for resource cleanup
+- [x] Create teardown pipeline for resource cleanup
 - [x] Create scaling pipeline to scale up or down ECS services for cost savings.
 - [x] Add ALB rule apply/inspect utilities driven by S3 JSON
 
@@ -52,8 +54,8 @@ Main goal is to build a demo portfolio project that showcases my resume skills. 
 
 ## 🗄️ Phase 6 — Database Integration
 
-- [ ] Create the AWS RDS datase
-- [ ] Connect APIs to local Linux PostgreSQL DB
+- [x] Create the AWS RDS datase
+- [x] Connect APIs to local Linux PostgreSQL DB
 - [ ] Add migration script to create first tables
 - [ ] Add PostgreSQL DB in AWS
 - [ ] Connect APIs to DB (POST and GET)
@@ -66,6 +68,7 @@ Main goal is to build a demo portfolio project that showcases my resume skills. 
 
 ## 🖥️ Phase 8 — Frontend (Future)
 
+- [x] Simple temporary FE, test API connections
 - [ ] Choose frontend framework
 - [ ] Build simple UI to consume APIs
 - [ ] Integrate authentication

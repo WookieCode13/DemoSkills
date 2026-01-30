@@ -1,4 +1,10 @@
 using System;
+using EmployeeAPI.Application.Employees;
+using EmployeeAPI.Infrastructure.Data;
+using EmployeeAPI.Infrastructure.Employees;
+using EmployeeAPI.Migrations;
+using FluentMigrator.Runner;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
 
@@ -10,41 +16,71 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+    // Comes from variable set in pipeline or default to "local"
     var buildBranch = Environment.GetEnvironmentVariable("BUILD_BRANCH") ?? "local";
 
     // Optional per-environment local overrides (not committed): appsettings.{Environment}.Local.json
-    builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.Local.json", optional: true, reloadOnChange: true);
+    builder.Configuration.AddJsonFile(
+        $"appsettings.{builder.Environment.EnvironmentName}.Local.json",
+        optional: true,
+        reloadOnChange: true);
 
     // Use Serilog for logging
-builder.Host.UseSerilog((ctx, services, cfg) => cfg
-    .ReadFrom.Configuration(ctx.Configuration)
-    .Enrich.FromLogContext()
-    .WriteTo.Console());
+    builder.Host.UseSerilog((ctx, services, cfg) => cfg
+        .ReadFrom.Configuration(ctx.Configuration)
+        .Enrich.FromLogContext()
+        .WriteTo.Console());
 
-// Add services to the container.
+    // Add services to the container.
+    builder.Services.AddControllers();
+    builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
-builder.Services.AddControllers();
-builder.Services.AddRouting(options => options.LowercaseUrls = true);
-const string corsPolicyName = "DashboardCors";
-var dashboardOrigins = new[] { "http://longranch.com", "http://dashboard.longranch.com" };
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy(corsPolicyName, policy =>
-        policy.WithOrigins(dashboardOrigins)
-            .AllowAnyHeader()
-            .AllowAnyMethod());
-});
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo
+    const string corsPolicyName = "DashboardCors";
+    var dashboardOrigins = new List<string>
     {
-        Title = "EmployeeAPI",
-        Version = $"api v1 ({buildBranch})",
-        Description = $"Build branch: {buildBranch}"
+        "http://longranch.com",
+        "http://dashboard.longranch.com",
+    };
+    if (builder.Environment.IsDevelopment())
+    {
+        dashboardOrigins.Add("http://longranch.wookie");
+        dashboardOrigins.Add("http://dashboard.longranch.wookie");
+    }
+
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy(corsPolicyName, policy =>
+            policy.WithOrigins(dashboardOrigins.ToArray())
+                .AllowAnyHeader()
+                .AllowAnyMethod());
     });
-});
+
+    // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen(c =>
+    {
+        c.SwaggerDoc("v1", new OpenApiInfo
+        {
+            Title = "EmployeeAPI",
+            Version = $"api v1 ({buildBranch})",
+            Description = $"Build branch: {buildBranch}"
+        });
+    });
+
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+    builder.Services.AddScoped<EmployeeService>();
+    builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+
+    builder.Services.Configure<MigrationOptions>(builder.Configuration.GetSection("Migrations"));
+    builder.Services
+        .AddFluentMigratorCore()
+        .ConfigureRunner(runner => runner
+            .AddPostgres()
+            .WithGlobalConnectionString(builder.Configuration.GetConnectionString("Default") ?? string.Empty)
+            .ScanIn(typeof(MigrationHostedService).Assembly).For.Migrations())
+        .AddLogging(logging => logging.AddFluentMigratorConsole());    
+    builder.Services.AddHostedService<MigrationHostedService>();
 
     // Optional: serve the app under a sub-path (e.g., "/employee")
     var pathBase = builder.Configuration["PathBase"];
@@ -55,21 +91,21 @@ builder.Services.AddSwaggerGen(c =>
 
     var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-// Enable Swagger based on config or environment
-var enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger", false) || app.Environment.IsDevelopment();
-if (enableSwagger)
-{
-    app.UseSwagger(c =>
+    // Configure the HTTP request pipeline.
+    // Enable Swagger based on config or environment
+    var enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger", false) || app.Environment.IsDevelopment();
+    if (enableSwagger)
     {
-        c.RouteTemplate = "swagger/{documentName}/swagger.json";
-    });
-    app.UseSwaggerUI(c =>
-    {
-        c.RoutePrefix = "swagger";
-        c.SwaggerEndpoint("v1/swagger.json", "EmployeeAPI v1");
-    });
-}
+        app.UseSwagger(c =>
+        {
+            c.RouteTemplate = "swagger/{documentName}/swagger.json";
+        });
+        app.UseSwaggerUI(c =>
+        {
+            c.RoutePrefix = "swagger";
+            c.SwaggerEndpoint("v1/swagger.json", "EmployeeAPI v1");
+        });
+    }
 
     app.UseSerilogRequestLogging();
     app.UseCors(corsPolicyName);
@@ -82,7 +118,7 @@ if (enableSwagger)
 
     //app.UseHttpsRedirection();
 
-app.UseAuthorization();
+    app.UseAuthorization();
 
     // Note: No root ("/") or top-level "/health" endpoints
 
