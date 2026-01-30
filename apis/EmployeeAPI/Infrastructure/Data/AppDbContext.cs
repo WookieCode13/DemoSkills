@@ -9,5 +9,13 @@ public class AppDbContext : DbContext
     {
     }
 
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<Employee>().ToTable("employee");
+        modelBuilder.Entity<AuditLog>().ToTable("audit_log");
+    }
+
     public DbSet<Employee> Employees { get; set; } = null!;
+    public DbSet<AuditLog> AuditLogs { get; set; } = null!;
 }

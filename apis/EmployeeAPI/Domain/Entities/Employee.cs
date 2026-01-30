@@ -13,6 +13,7 @@ public class Employee
 
     // Sensitive fields stay in domain/DB, not in response contracts
     // TODO: public string? SsnEncrypted { get; set; }
+    public string SSN { get; set; } = ""; // for this demo project lets come back to encyryption later
 
     public DateTime? DateOfBirth { get; set; }
     public DateTime? DeletedUtc { get; set; }

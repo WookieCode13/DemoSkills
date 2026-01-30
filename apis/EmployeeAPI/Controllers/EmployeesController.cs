@@ -66,4 +66,49 @@ public class EmployeesController : ControllerBase
 
         return Ok(employee.ToResponse());
     }
+
+    [HttpPost]
+    [ProducesResponseType(typeof(EmployeeResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<EmployeeResponse>> Create(
+        [FromBody] CreateEmployeeRequest request,
+        CancellationToken ct)
+    {
+        var created = await _employeeService.CreateAsync(request, ct);
+
+        return CreatedAtAction(
+            nameof(GetByIdAsync),
+            new { id = created.Id },
+            created);
+    }
+
+    [HttpPatch("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Patch(
+        Guid id,
+        [FromBody] PatchEmployeeRequest request,
+        CancellationToken ct)
+    {
+        var result = await _employeeService.PatchAsync(id, request, ct);
+
+        return result switch
+        {
+            PatchResult.Updated => NoContent(),
+            PatchResult.NoChanges => NoContent(),
+            _ => NotFound()
+        };
+    }
+
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        var deleted = await _employeeService.DeleteAsync(id, ct);
+        return deleted ? NoContent() : NotFound();
+    }
+
 }
+

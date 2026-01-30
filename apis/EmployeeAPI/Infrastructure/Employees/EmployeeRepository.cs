@@ -31,29 +31,20 @@ public class EmployeeRepository : IEmployeeRepository
             .FirstOrDefaultAsync(e => e.Id == id && e.DeletedUtc == null, ct);
     }
 
-    public async Task AddEmployeeAsync(Employee employee, CancellationToken ct)
+    public Task<Employee?> GetForUpdateAsync(Guid id, CancellationToken ct)
     {
-        await _db.Employees.AddAsync(employee, ct);
-        await _db.SaveChangesAsync(ct);
+        return _db.Employees
+            .FirstOrDefaultAsync(e => e.Id == id && e.DeletedUtc == null, ct);
     }
 
-    public async Task UpdateEmployeeAsync(Employee employee, CancellationToken ct)
+    public Task AddAsync(Employee employee, CancellationToken ct)
     {
-        _db.Employees.Update(employee);
-        await _db.SaveChangesAsync(ct);
+        _db.Employees.Add(employee);
+        return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Soft delete an employee by setting DeletedUtc.
-    /// </summary>    
-    public async Task DeleteEmployeeAsync(Guid id, CancellationToken ct)
+    public async Task SaveChangesAsync(CancellationToken ct)
     {
-        var employee = await _db.Employees.FirstOrDefaultAsync(e => e.Id == id && e.DeletedUtc == null, ct);
-        if (employee != null)
-        {
-            employee.DeletedUtc = DateTime.UtcNow;
-            _db.Employees.Update(employee);
-            await _db.SaveChangesAsync(ct);
-        }
+        await _db.SaveChangesAsync(ct);
     }
 }
