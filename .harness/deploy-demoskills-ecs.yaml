@@ -60,6 +60,45 @@ pipeline:
             steps:
               - step:
                   type: Run
+                  name: Run CompanyAPI Migrations
+                  identifier: run_companyapi_migrations
+                  spec:
+                    shell: Sh
+                    image: python:3.12-slim
+                    envVariables:
+                      TARGET_ENV: <+pipeline.variables.TARGET_ENV>
+                      DB_URL_DEV: <+secrets.getValue("db_url_dev")>
+                      DB_URL_PROD: <+secrets.getValue("db_url_prod")>
+                    command: |-
+                      set -euo pipefail
+
+                      TARGET_ENV="${TARGET_ENV:-Development}"
+                      DB_URL=""
+
+                      if [ "$TARGET_ENV" = "Production" ]; then
+                        DB_URL="${DB_URL_PROD:-}"
+                      else
+                        DB_URL="${DB_URL_DEV:-}"
+                      fi
+
+                      if [ -z "$DB_URL" ]; then
+                        echo "ERROR: Database URL not provided for TARGET_ENV=$TARGET_ENV. Set db_url_dev/db_url_prod secrets."
+                        exit 1
+                      fi
+
+                      echo "Running CompanyAPI Alembic migrations..."
+                      pip install --no-cache-dir -r apis/CompanyAPI/requirements.txt
+                      (cd apis/CompanyAPI && DATABASE_URL="$DB_URL" alembic -c alembic.ini upgrade head)
+
+                      if [ -f "apis/ReportAPI/alembic.ini" ]; then
+                        echo "Running ReportAPI Alembic migrations..."
+                        pip install --no-cache-dir -r apis/ReportAPI/requirements.txt
+                        (cd apis/ReportAPI && DATABASE_URL="$DB_URL" alembic -c alembic.ini upgrade head)
+                      else
+                        echo "No ReportAPI Alembic config found; skipping ReportAPI migrations."
+                      fi
+              - step:
+                  type: Run
                   name: Deploy Image to ECS
                   identifier: deploy_image_to_ecs
                   spec:
