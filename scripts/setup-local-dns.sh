@@ -16,12 +16,11 @@ echo "Current git branch: $current_branch"
 read -r -p "Continue with this branch? (y/N): " confirm_branch
 confirm_branch="${confirm_branch:-n}"
 if [[ ! "$confirm_branch" =~ ^[Yy]$ ]]; then
-  echo "Canceled. To switch branches, run: git fetch && git checkout <branch>"
-  exit 0
+  echo "Skipping git update. To switch branches, run: git fetch && git checkout <branch>"
+else
+  echo "Updating repo..."
+  git pull
 fi
-
-echo "Updating repo..."
-git pull
 
 read -r -p "Refresh dnsmasq mappings? (y/N): " refresh_dns
 refresh_dns="${refresh_dns:-n}"
@@ -60,37 +59,8 @@ else
   docker compose up --build -d
 fi
 
-ensure_alembic() {
-  if ! command -v alembic >/dev/null 2>&1; then
-    echo "alembic not found. Installing CompanyAPI requirements..."
-    if command -v pip >/dev/null 2>&1; then
-      pip install -r apis/CompanyAPI/requirements.txt
-    else
-      echo "pip not found. Install Python/pip and re-run."
-      exit 1
-    fi
-  fi
-}
-
-if [ -f "apis/CompanyAPI/alembic.ini" ]; then
-  ensure_alembic
-  if [ -z "${DemoSkills_DATABASE_URL:-}" ]; then
-    echo "DemoSkills_DATABASE_URL not set. Set it before running migrations."
-    exit 1
-  fi
-  echo "Running CompanyAPI migrations..."
-  (cd apis/CompanyAPI && DATABASE_URL="${DemoSkills_DATABASE_URL}" alembic -c alembic.ini upgrade head)
-fi
-
-if [ -f "apis/ReportAPI/alembic.ini" ]; then
-  ensure_alembic
-  if [ -z "${DemoSkills_DATABASE_URL:-}" ]; then
-    echo "DemoSkills_DATABASE_URL not set. Set it before running migrations."
-    exit 1
-  fi
-  echo "Running ReportAPI migrations..."
-  (cd apis/ReportAPI && DATABASE_URL="${DemoSkills_DATABASE_URL}" alembic -c alembic.ini upgrade head)
-fi
+# NOTE: Alembic migrations were removed from this script.
+# TODO: Revisit Alembic for local runs (possibly via docker compose) if needed.
 
 echo "Done."
 echo "If DNS changes don't show up on clients, flush their DNS cache."
