@@ -153,7 +153,7 @@ public class EmployeeService
             Action = action,
             OccurredUtc = DateTimeOffset.UtcNow,
             PerformedBy = "system",
-            ChangedFields = changedFields is null ? null : string.Join(",", changedFields)
+            ChangedFields = changedFields is null ? null : changedFields.ToList()
         }, ct);
         await _auditLogRepository.SaveChangesAsync(ct);
     }

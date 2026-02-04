@@ -9,10 +9,11 @@ using FluentMigrator.Runner;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using Serilog.Formatting.Compact;
 
 // Bootstrap Serilog early
 Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
+    .WriteTo.Console(new CompactJsonFormatter())
     .CreateBootstrapLogger();
 
 try
@@ -31,7 +32,7 @@ try
     builder.Host.UseSerilog((ctx, services, cfg) => cfg
         .ReadFrom.Configuration(ctx.Configuration)
         .Enrich.FromLogContext()
-        .WriteTo.Console());
+        .WriteTo.Console(new CompactJsonFormatter()));
 
     // Add services to the container.
     builder.Services.AddControllers();

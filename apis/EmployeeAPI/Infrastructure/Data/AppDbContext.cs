@@ -1,3 +1,4 @@
+using System.Text.Json;
 using EmployeeAPI.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,7 +37,12 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Action).HasColumnName("action");
             entity.Property(e => e.OccurredUtc).HasColumnName("occurred_utc");
             entity.Property(e => e.PerformedBy).HasColumnName("performed_by");
-            entity.Property(e => e.ChangedFields).HasColumnName("changed_fields");
+            entity.Property(e => e.ChangedFields)
+                .HasColumnName("changed_fields")
+                .HasColumnType("jsonb")
+                .HasConversion(
+                    value => value == null ? null : JsonSerializer.Serialize(value, (JsonSerializerOptions?)null),
+                    value => value == null ? null : JsonSerializer.Deserialize<List<string>>(value, (JsonSerializerOptions?)null));
             entity.Property(e => e.Note).HasColumnName("note");
             entity.Property(e => e.CorrelationId).HasColumnName("correlation_id");
         });
