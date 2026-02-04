@@ -52,7 +52,7 @@ public class EmployeesController : ControllerBase
     [ProducesResponseType(typeof(EmployeeResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<EmployeeResponse>> GetByIdAsync(Guid id, CancellationToken ct)
+    public async Task<ActionResult<EmployeeResponse>> GetById(Guid id, CancellationToken ct)
     {
         _logger.LogInformation("GET /employees/{EmployeeId} requested", id);
 
@@ -78,7 +78,7 @@ public class EmployeesController : ControllerBase
         var created = await _employeeService.CreateAsync(request, ct);
 
         return CreatedAtAction(
-            nameof(GetByIdAsync),
+            nameof(GetById),
             new { id = created.Id },
             created);
     }
