@@ -1,6 +1,8 @@
 using System;
+using EmployeeAPI.Application.Auditing;
 using EmployeeAPI.Application.Employees;
 using EmployeeAPI.Infrastructure.Data;
+using EmployeeAPI.Infrastructure.Auditing;
 using EmployeeAPI.Infrastructure.Employees;
 using EmployeeAPI.Migrations;
 using FluentMigrator.Runner;
@@ -71,6 +73,7 @@ try
         options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
     builder.Services.AddScoped<EmployeeService>();
     builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+    builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
     builder.Services.Configure<MigrationOptions>(builder.Configuration.GetSection("Migrations"));
     builder.Services

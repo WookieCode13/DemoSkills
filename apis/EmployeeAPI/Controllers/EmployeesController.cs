@@ -74,6 +74,7 @@ public class EmployeesController : ControllerBase
         [FromBody] CreateEmployeeRequest request,
         CancellationToken ct)
     {
+        _logger.LogInformation("POST /employees requested");
         var created = await _employeeService.CreateAsync(request, ct);
 
         return CreatedAtAction(
@@ -91,6 +92,7 @@ public class EmployeesController : ControllerBase
         [FromBody] PatchEmployeeRequest request,
         CancellationToken ct)
     {
+        _logger.LogInformation("PATCH /employees/{EmployeeId} requested", id);
         var result = await _employeeService.PatchAsync(id, request, ct);
 
         return result switch
@@ -106,6 +108,7 @@ public class EmployeesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
+        _logger.LogInformation("DELETE /employees/{EmployeeId} requested", id);
         var deleted = await _employeeService.DeleteAsync(id, ct);
         return deleted ? NoContent() : NotFound();
     }
