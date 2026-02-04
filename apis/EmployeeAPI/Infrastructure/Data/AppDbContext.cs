@@ -22,7 +22,7 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Email).HasColumnName("email");
             entity.Property(e => e.Phone).HasColumnName("phone");
             entity.Property(e => e.SSN).HasColumnName("ssn");
-            entity.Property(e => e.DateOfBirth).HasColumnName("date_of_birth");
+            entity.Property(e => e.DateOfBirth).HasColumnName("date_of_birth").HasColumnType("date");
             entity.Property(e => e.CreatedUtc).HasColumnName("created_utc");
             entity.Property(e => e.UpdatedUtc).HasColumnName("updated_utc");
             entity.Property(e => e.DeletedUtc).HasColumnName("deleted_utc");
