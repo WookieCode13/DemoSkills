@@ -37,6 +37,8 @@ public class EmployeeService
             Email = request.Email.Trim(),              
             Phone = request.Phone,
             DateOfBirth = request.DateOfBirth,
+            CreatedUtc = DateTime.UtcNow,
+            UpdatedUtc = DateTime.UtcNow,
             DeletedUtc = null,
             SSN = request.SSN.Trim()
         };
