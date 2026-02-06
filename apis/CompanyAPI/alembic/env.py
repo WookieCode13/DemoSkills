@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+# NOTE: Alembic migrations are deferred for this demo.
+# We now run Company schema setup via EmployeeAPI FluentMigrator.
+# TODO: Revisit Alembic once delegate-based AWS migration flow is simplified.
+
 import os
 from logging.config import fileConfig
 

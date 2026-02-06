@@ -1,16 +1,19 @@
 using System;
+using EmployeeAPI.Application.Auditing;
 using EmployeeAPI.Application.Employees;
 using EmployeeAPI.Infrastructure.Data;
+using EmployeeAPI.Infrastructure.Auditing;
 using EmployeeAPI.Infrastructure.Employees;
 using EmployeeAPI.Migrations;
 using FluentMigrator.Runner;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using Serilog.Formatting.Compact;
 
 // Bootstrap Serilog early
 Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
+    .WriteTo.Console(new CompactJsonFormatter())
     .CreateBootstrapLogger();
 
 try
@@ -29,7 +32,7 @@ try
     builder.Host.UseSerilog((ctx, services, cfg) => cfg
         .ReadFrom.Configuration(ctx.Configuration)
         .Enrich.FromLogContext()
-        .WriteTo.Console());
+        .WriteTo.Console(new CompactJsonFormatter()));
 
     // Add services to the container.
     builder.Services.AddControllers();
@@ -71,6 +74,7 @@ try
         options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
     builder.Services.AddScoped<EmployeeService>();
     builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+    builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
     builder.Services.Configure<MigrationOptions>(builder.Configuration.GetSection("Migrations"));
     builder.Services

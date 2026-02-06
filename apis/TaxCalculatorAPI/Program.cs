@@ -1,12 +1,13 @@
 using System;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using Serilog.Formatting.Compact;
 
 var buildBranch = Environment.GetEnvironmentVariable("BUILD_BRANCH") ?? "local";
 
 // Bootstrap Serilog early
 Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
+    .WriteTo.Console(new CompactJsonFormatter())
     .CreateBootstrapLogger();
 
 try
@@ -18,7 +19,7 @@ try
     builder.Host.UseSerilog((ctx, services, cfg) => cfg
         .ReadFrom.Configuration(ctx.Configuration)
         .Enrich.FromLogContext()
-        .WriteTo.Console());
+        .WriteTo.Console(new CompactJsonFormatter()));
 
     builder.Services.AddControllers();
     builder.Services.AddRouting(options => options.LowercaseUrls = true);

@@ -81,5 +81,12 @@ services:
     volumes:
       - demoskills_pgdata:/var/lib/postgresql/data
 
+  dozzle:
+    image: amir20/dozzle:v8.10.2
+    ports:
+      - "9999:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
 volumes:
   demoskills_pgdata:
