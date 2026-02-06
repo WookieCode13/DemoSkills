@@ -25,7 +25,7 @@ public sealed class V2026020502_AddCompanyShortCode : Migration
 
         Execute.Sql(@"
             ALTER TABLE company
-            ADD CONSTRAINT IF NOT EXISTS company_short_code_format
+            ADD CONSTRAINT company_short_code_format
             CHECK (short_code IS NULL OR (char_length(short_code) = 10 AND short_code ~ '^[A-Z0-9]{10}$' AND short_code = upper(short_code)));
         ");
 
