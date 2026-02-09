@@ -79,6 +79,7 @@ pipeline:
 
                       MULTI_IMAGE_TAGS_RAW="<+pipeline.variables.IMAGE_TAGS>"
                       CLUSTER="<+pipeline.variables.ECS_CLUSTER>"
+                      BUILD_REF="${BUILD_REF:-}"
                       TARGET_ENV="${TARGET_ENV:-Development}"
                       WAIT_FOR_STABLE_RAW="<+pipeline.variables.WAIT_FOR_STABLE>"
                       DESIRED_COUNT_RAW="<+pipeline.variables.DESIRED_COUNT>"
