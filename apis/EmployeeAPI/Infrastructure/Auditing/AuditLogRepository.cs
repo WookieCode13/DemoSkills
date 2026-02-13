@@ -15,12 +15,8 @@ public class AuditLogRepository : IAuditLogRepository
 
     public Task AddAsync(AuditLog entry, CancellationToken ct)
     {
+        // Wrapper for staging an audit row; service controls SaveChanges/transaction.
         _db.AuditLogs.Add(entry);
         return Task.CompletedTask;
-    }
-
-    public Task SaveChangesAsync(CancellationToken ct)
-    {
-        return _db.SaveChangesAsync(ct);
     }
 }

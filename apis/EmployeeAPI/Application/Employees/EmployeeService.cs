@@ -43,13 +43,23 @@ public class EmployeeService
             SSN = request.SSN.Trim()
         };
         await _employeeRepository.AddAsync(employee, ct);   // stage
-        await _employeeRepository.SaveChangesAsync(ct);     // commit
 
-        await WriteAuditLogAsync(
+        await AddAuditLogAsync(
             employee.Id,
             "created",
-            changedFields: null,
+            changedFields: new[]
+            {
+                nameof(employee.FirstName),
+                nameof(employee.LastName),
+                nameof(employee.Email),
+                nameof(employee.Phone),
+                nameof(employee.DateOfBirth),
+                nameof(employee.SSN)
+            },
+            changes: BuildCreateAuditChanges(employee),
+            note: null,
             ct);
+        await _employeeRepository.SaveChangesAsync(ct);     // commit employee + audit together
 
         _logger.LogInformation("Created employee {EmployeeId}", employee.Id);
 
@@ -66,7 +76,8 @@ public class EmployeeService
         }
 
         var changedFields = new List<string>();
-        MapChangedFields(request, employee, changedFields);
+        var changes = new Dictionary<string, object?>();
+        MapChangedFields(request, employee, changedFields, changes);
 
         if (changedFields.Count == 0)
         {
@@ -76,41 +87,54 @@ public class EmployeeService
 
         employee.UpdatedUtc = DateTime.UtcNow;
 
-        await _employeeRepository.SaveChangesAsync(ct); // commits changes EF tracked
-
-        await WriteAuditLogAsync(
+        await AddAuditLogAsync(
             employee.Id,
             "updated",
             changedFields,
+            changes,
+            note: null,
             ct);
+        await _employeeRepository.SaveChangesAsync(ct); // commit employee + audit together
 
         _logger.LogInformation("Updated employee {EmployeeId} ({Fields})", id, string.Join(",", changedFields));
         return PatchResult.Updated;
 
-        static void MapChangedFields(PatchEmployeeRequest request, Employee employee, List<string> changedFields)
+        static void MapChangedFields(
+            PatchEmployeeRequest request,
+            Employee employee,
+            List<string> changedFields,
+            Dictionary<string, object?> changes)
         {
             if (request.Email is not null && request.Email.Trim() != employee.Email)
             {
-                employee.Email = request.Email.Trim();
+                var newValue = request.Email.Trim();
+                changes[nameof(employee.Email)] = newValue;
+                employee.Email = newValue;
                 changedFields.Add(nameof(employee.Email));
             }
             if (request.Phone is not null && request.Phone != employee.Phone)
             {
+                changes[nameof(employee.Phone)] = request.Phone;
                 employee.Phone = request.Phone;
                 changedFields.Add(nameof(employee.Phone));
             }
             if (request.FirstName is not null && request.FirstName.Trim() != employee.FirstName)
             {
-                employee.FirstName = request.FirstName.Trim();
+                var newValue = request.FirstName.Trim();
+                changes[nameof(employee.FirstName)] = newValue;
+                employee.FirstName = newValue;
                 changedFields.Add(nameof(employee.FirstName));
             }
             if (request.LastName is not null && request.LastName.Trim() != employee.LastName)
             {
-                employee.LastName = request.LastName.Trim();
+                var newValue = request.LastName.Trim();
+                changes[nameof(employee.LastName)] = newValue;
+                employee.LastName = newValue;
                 changedFields.Add(nameof(employee.LastName));
             }
             if (request.DateOfBirth.HasValue && request.DateOfBirth != employee.DateOfBirth)
             {
+                changes[nameof(employee.DateOfBirth)] = request.DateOfBirth;
                 employee.DateOfBirth = request.DateOfBirth;
                 changedFields.Add(nameof(employee.DateOfBirth));
             }
@@ -129,23 +153,30 @@ public class EmployeeService
 
         employee.DeletedUtc = DateTime.UtcNow;
         employee.UpdatedUtc = DateTime.UtcNow;
-        
-        await _employeeRepository.SaveChangesAsync(ct);
 
-        await WriteAuditLogAsync(
+        await AddAuditLogAsync(
             employee.Id,
             "deleted",
             changedFields: null,
+            changes: new Dictionary<string, object?>
+            {
+                [nameof(employee.DeletedUtc)] = employee.DeletedUtc,
+                [nameof(employee.UpdatedUtc)] = employee.UpdatedUtc
+            },
+            note: null,
             ct);
+        await _employeeRepository.SaveChangesAsync(ct); // commit employee + audit together
 
         _logger.LogInformation("Deleted employee {EmployeeId}", id);
         return true;
     }
 
-    private async Task WriteAuditLogAsync(
+    private async Task AddAuditLogAsync(
         Guid entityId,
         string action,
         IEnumerable<string>? changedFields,
+        Dictionary<string, object?>? changes,
+        string? note,
         CancellationToken ct)
     {
         await _auditLogRepository.AddAsync(new AuditLog
@@ -155,9 +186,23 @@ public class EmployeeService
             Action = action,
             OccurredUtc = DateTimeOffset.UtcNow,
             PerformedBy = "system",
-            ChangedFields = changedFields is null ? null : changedFields.ToList()
+            ChangedFields = changedFields is null ? null : changedFields.ToList(),
+            Changes = changes,
+            Note = note
         }, ct);
-        await _auditLogRepository.SaveChangesAsync(ct);
+    }
+
+    private static Dictionary<string, object?> BuildCreateAuditChanges(Employee employee)
+    {
+        return new Dictionary<string, object?>
+        {
+            [nameof(employee.FirstName)] = employee.FirstName,
+            [nameof(employee.LastName)] = employee.LastName,
+            [nameof(employee.Email)] = employee.Email,
+            [nameof(employee.Phone)] = employee.Phone,
+            [nameof(employee.DateOfBirth)] = employee.DateOfBirth,
+            [nameof(employee.SSN)] = "[REDACTED]"
+        };
     }
 
 }

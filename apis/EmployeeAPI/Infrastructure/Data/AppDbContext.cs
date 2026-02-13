@@ -43,6 +43,12 @@ public class AppDbContext : DbContext
                 .HasConversion(
                     value => value == null ? null : JsonSerializer.Serialize(value, (JsonSerializerOptions?)null),
                     value => value == null ? null : JsonSerializer.Deserialize<List<string>>(value, (JsonSerializerOptions?)null));
+            entity.Property(e => e.Changes)
+                .HasColumnName("changes")
+                .HasColumnType("jsonb")
+                .HasConversion(
+                    value => value == null ? null : JsonSerializer.Serialize(value, (JsonSerializerOptions?)null),
+                    value => value == null ? null : JsonSerializer.Deserialize<Dictionary<string, object?>>(value, (JsonSerializerOptions?)null));
             entity.Property(e => e.Note).HasColumnName("note");
             entity.Property(e => e.CorrelationId).HasColumnName("correlation_id");
         });

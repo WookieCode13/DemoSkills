@@ -39,6 +39,7 @@ public class EmployeeRepository : IEmployeeRepository
 
     public Task AddAsync(Employee employee, CancellationToken ct)
     {
+        // Wrapper for staging a new employee; service controls SaveChanges/transaction.
         _db.Employees.Add(employee);
         return Task.CompletedTask;
     }
