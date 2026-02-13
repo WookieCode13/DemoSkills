@@ -1,4 +1,5 @@
 """Audit logging service."""
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -18,7 +19,7 @@ class AuditService:
         entity_id: UUID,
         action: str,
         performed_by: str = "system",
-        changed_fields: str | None = None,
+        changed_fields: list[str] | dict[str, Any] | None = None,
         note: str | None = None,
         correlation_id: str | None = None,
     ) -> None:

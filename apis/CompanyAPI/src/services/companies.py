@@ -97,7 +97,7 @@ class CompanyService:
                 entity_type="company",
                 entity_id=company_id,
                 action="updated",
-                changed_fields=",".join(data.keys()) if data else None,
+                changed_fields=list(data.keys()) if data else None,
             )
             self._company_repo.update_company(company)
             self._db.commit()

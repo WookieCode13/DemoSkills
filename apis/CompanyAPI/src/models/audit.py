@@ -1,6 +1,6 @@
 """Audit Log Model."""
 from sqlalchemy import Column, DateTime, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.sql import func
 
 from ..db.base import Base
@@ -15,7 +15,7 @@ class AuditLog(Base):
     action = Column(String(50), nullable=False)
     occurred_utc = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     performed_by = Column(String(255), nullable=False, server_default="system")
-    changed_fields = Column(Text, nullable=True)
+    changed_fields = Column(JSONB, nullable=True)
     note = Column(Text, nullable=True)
     correlation_id = Column(Text, nullable=True)
 
