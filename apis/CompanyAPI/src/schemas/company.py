@@ -23,7 +23,8 @@ class CompanyCreate(BaseModel):
 
 
 class CompanyPatch(BaseModel):
-    name: str = Field(..., min_length=1, examples=["Demo Skills LLC"])
+    name: str | None = Field(default=None, min_length=1, examples=["Demo Skills LLC"])
     industry: str | None = Field(default=None, examples=["Demo Skills 123"])
     email: str | None = Field(default=None, examples=["info@demoskills.com"])
     phone: str | None = Field(default=None, examples=["555-1234"])
+

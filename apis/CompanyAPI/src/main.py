@@ -5,9 +5,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .api.companies import router as companies_router
 from .schemas.health import HealthResponse
+from .core.logger import configure_logging
 
 _build_branch = os.getenv("BUILD_BRANCH", "local")
 _root_path = os.getenv("ROOT_PATH", "")
+configure_logging()
 
 app = FastAPI(
     title="CompanyAPI",
@@ -49,7 +51,6 @@ def root_health() -> HealthResponse:
 
 
 app.include_router(companies_router)
-
 
 if __name__ == "__main__":
     import uvicorn

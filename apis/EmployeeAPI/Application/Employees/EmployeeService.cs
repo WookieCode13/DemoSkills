@@ -43,13 +43,13 @@ public class EmployeeService
             SSN = request.SSN.Trim()
         };
         await _employeeRepository.AddAsync(employee, ct);   // stage
-        await _employeeRepository.SaveChangesAsync(ct);     // commit
 
-        await WriteAuditLogAsync(
+        await AddAuditLogAsync(
             employee.Id,
             "created",
             changedFields: null,
             ct);
+        await _employeeRepository.SaveChangesAsync(ct);     // commit employee + audit together
 
         _logger.LogInformation("Created employee {EmployeeId}", employee.Id);
 
@@ -76,13 +76,12 @@ public class EmployeeService
 
         employee.UpdatedUtc = DateTime.UtcNow;
 
-        await _employeeRepository.SaveChangesAsync(ct); // commits changes EF tracked
-
-        await WriteAuditLogAsync(
+        await AddAuditLogAsync(
             employee.Id,
             "updated",
             changedFields,
             ct);
+        await _employeeRepository.SaveChangesAsync(ct); // commit employee + audit together
 
         _logger.LogInformation("Updated employee {EmployeeId} ({Fields})", id, string.Join(",", changedFields));
         return PatchResult.Updated;
@@ -129,20 +128,19 @@ public class EmployeeService
 
         employee.DeletedUtc = DateTime.UtcNow;
         employee.UpdatedUtc = DateTime.UtcNow;
-        
-        await _employeeRepository.SaveChangesAsync(ct);
 
-        await WriteAuditLogAsync(
+        await AddAuditLogAsync(
             employee.Id,
             "deleted",
             changedFields: null,
             ct);
+        await _employeeRepository.SaveChangesAsync(ct); // commit employee + audit together
 
         _logger.LogInformation("Deleted employee {EmployeeId}", id);
         return true;
     }
 
-    private async Task WriteAuditLogAsync(
+    private async Task AddAuditLogAsync(
         Guid entityId,
         string action,
         IEnumerable<string>? changedFields,
@@ -157,7 +155,6 @@ public class EmployeeService
             PerformedBy = "system",
             ChangedFields = changedFields is null ? null : changedFields.ToList()
         }, ct);
-        await _auditLogRepository.SaveChangesAsync(ct);
     }
 
 }
