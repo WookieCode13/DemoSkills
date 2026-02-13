@@ -16,6 +16,7 @@ class AuditLog(Base):
     occurred_utc = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     performed_by = Column(String(255), nullable=False, server_default="system")
     changed_fields = Column(JSONB, nullable=True)
+    changes = Column(JSONB, nullable=True)
     note = Column(Text, nullable=True)
     correlation_id = Column(Text, nullable=True)
 

@@ -61,7 +61,15 @@ class CompanyService:
                 entity_type="company",
                 entity_id=new_company.id,
                 action="created",
-                changed_fields=None,
+                changed_fields=["short_code", "name", "industry", "email", "phone"],
+                changes={
+                    "id": str(new_company.id),
+                    "short_code": new_company.short_code,
+                    "name": new_company.name,
+                    "industry": new_company.industry,
+                    "email": new_company.email,
+                    "phone": new_company.phone,
+                },
             )
             self._db.commit()
             self._db.refresh(new_company)
@@ -98,6 +106,7 @@ class CompanyService:
                 entity_id=company_id,
                 action="updated",
                 changed_fields=list(data.keys()) if data else None,
+                changes=data if data else None,
             )
             self._company_repo.update_company(company)
             self._db.commit()
@@ -122,6 +131,7 @@ class CompanyService:
                 entity_id=company_id,
                 action="deleted",
                 changed_fields=None,
+                changes=None,
             )
             self._company_repo.update_company(company)
             self._db.commit()

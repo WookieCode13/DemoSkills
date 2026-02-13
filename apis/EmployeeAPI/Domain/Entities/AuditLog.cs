@@ -9,6 +9,7 @@ public class AuditLog
     public DateTimeOffset OccurredUtc { get; set; }
     public string PerformedBy { get; set; } = "system";
     public List<string>? ChangedFields { get; set; }
+    public Dictionary<string, object?>? Changes { get; set; }
     public string? Note { get; set; }
     public string? CorrelationId { get; set; }
 }

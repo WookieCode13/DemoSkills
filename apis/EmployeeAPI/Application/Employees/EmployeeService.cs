@@ -4,7 +4,6 @@ using EmployeeAPI.Mappings;
 using EmployeeAPI.Application.Auditing;
 using Microsoft.Extensions.Logging;
 using EmployeeAPI.Application.Logging;
-using System.Text.Json;
 
 namespace EmployeeAPI.Application.Employees;
 
@@ -57,7 +56,8 @@ public class EmployeeService
                 nameof(employee.DateOfBirth),
                 nameof(employee.SSN)
             },
-            note: BuildCreateAuditNote(employee),
+            changes: BuildCreateAuditChanges(employee),
+            note: null,
             ct);
         await _employeeRepository.SaveChangesAsync(ct);     // commit employee + audit together
 
@@ -91,7 +91,8 @@ public class EmployeeService
             employee.Id,
             "updated",
             changedFields,
-            note: JsonSerializer.Serialize(changes),
+            changes,
+            note: null,
             ct);
         await _employeeRepository.SaveChangesAsync(ct); // commit employee + audit together
 
@@ -107,33 +108,33 @@ public class EmployeeService
             if (request.Email is not null && request.Email.Trim() != employee.Email)
             {
                 var newValue = request.Email.Trim();
-                changes[nameof(employee.Email)] = new { from = employee.Email, to = newValue };
+                changes[nameof(employee.Email)] = newValue;
                 employee.Email = newValue;
                 changedFields.Add(nameof(employee.Email));
             }
             if (request.Phone is not null && request.Phone != employee.Phone)
             {
-                changes[nameof(employee.Phone)] = new { from = employee.Phone, to = request.Phone };
+                changes[nameof(employee.Phone)] = request.Phone;
                 employee.Phone = request.Phone;
                 changedFields.Add(nameof(employee.Phone));
             }
             if (request.FirstName is not null && request.FirstName.Trim() != employee.FirstName)
             {
                 var newValue = request.FirstName.Trim();
-                changes[nameof(employee.FirstName)] = new { from = employee.FirstName, to = newValue };
+                changes[nameof(employee.FirstName)] = newValue;
                 employee.FirstName = newValue;
                 changedFields.Add(nameof(employee.FirstName));
             }
             if (request.LastName is not null && request.LastName.Trim() != employee.LastName)
             {
                 var newValue = request.LastName.Trim();
-                changes[nameof(employee.LastName)] = new { from = employee.LastName, to = newValue };
+                changes[nameof(employee.LastName)] = newValue;
                 employee.LastName = newValue;
                 changedFields.Add(nameof(employee.LastName));
             }
             if (request.DateOfBirth.HasValue && request.DateOfBirth != employee.DateOfBirth)
             {
-                changes[nameof(employee.DateOfBirth)] = new { from = employee.DateOfBirth, to = request.DateOfBirth };
+                changes[nameof(employee.DateOfBirth)] = request.DateOfBirth;
                 employee.DateOfBirth = request.DateOfBirth;
                 changedFields.Add(nameof(employee.DateOfBirth));
             }
@@ -157,6 +158,11 @@ public class EmployeeService
             employee.Id,
             "deleted",
             changedFields: null,
+            changes: new Dictionary<string, object?>
+            {
+                [nameof(employee.DeletedUtc)] = employee.DeletedUtc,
+                [nameof(employee.UpdatedUtc)] = employee.UpdatedUtc
+            },
             note: null,
             ct);
         await _employeeRepository.SaveChangesAsync(ct); // commit employee + audit together
@@ -169,6 +175,7 @@ public class EmployeeService
         Guid entityId,
         string action,
         IEnumerable<string>? changedFields,
+        Dictionary<string, object?>? changes,
         string? note,
         CancellationToken ct)
     {
@@ -180,13 +187,14 @@ public class EmployeeService
             OccurredUtc = DateTimeOffset.UtcNow,
             PerformedBy = "system",
             ChangedFields = changedFields is null ? null : changedFields.ToList(),
+            Changes = changes,
             Note = note
         }, ct);
     }
 
-    private static string BuildCreateAuditNote(Employee employee)
+    private static Dictionary<string, object?> BuildCreateAuditChanges(Employee employee)
     {
-        var payload = new Dictionary<string, object?>
+        return new Dictionary<string, object?>
         {
             [nameof(employee.FirstName)] = employee.FirstName,
             [nameof(employee.LastName)] = employee.LastName,
@@ -195,7 +203,6 @@ public class EmployeeService
             [nameof(employee.DateOfBirth)] = employee.DateOfBirth,
             [nameof(employee.SSN)] = "[REDACTED]"
         };
-        return JsonSerializer.Serialize(payload);
     }
 
 }

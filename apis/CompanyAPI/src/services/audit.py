@@ -1,4 +1,5 @@
 """Audit logging service."""
+from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
@@ -19,7 +20,8 @@ class AuditService:
         entity_id: UUID,
         action: str,
         performed_by: str = "system",
-        changed_fields: list[str] | dict[str, Any] | None = None,
+        changed_fields: list[str] | None = None,
+        changes: dict[str, Any] | None = None,
         note: str | None = None,
         correlation_id: str | None = None,
     ) -> None:
@@ -27,8 +29,10 @@ class AuditService:
             entity_id=entity_id,
             entity_type=f"CompanyAPI.{entity_type}", # Shares log table with other services, so prefix with service name to avoid collisions.
             action=action,
+            occurred_utc=datetime.now(timezone.utc),
             performed_by=performed_by,
             changed_fields=changed_fields,
+            changes=changes,
             note=note,
             correlation_id=correlation_id,
         )
