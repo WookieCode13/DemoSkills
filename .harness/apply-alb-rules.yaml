@@ -1,5 +1,5 @@
 # Utility pipeline to recreate ALB listener rules for all APIs (employees, companies, pay, taxes, reports).
-# ALB should have created the default listener on port 80 already. with default TG.
+# Supports HTTP:80 or HTTPS:443 listeners (defaults to HTTPS:443).
 # In S3 the harness-settings bucket, store:
 #   alb-listeners.sample.json - my loadbalancer listener definitions (can be empty except for load balancer name)
 #   alb-rules.sample.json - my api rule definitions
@@ -21,7 +21,17 @@ pipeline:
     - name: LISTENER_ARN
       type: String
       value: <+input>
-      description: Optional listener ARN (leave blank to auto-resolve first HTTP:80 listener)
+      description: Optional listener ARN (leave blank to auto-resolve listener by protocol/port below)
+      required: false
+    - name: LISTENER_PROTOCOL
+      type: String
+      value: <+input>.default(HTTPS).allowedValues(HTTP,HTTPS)
+      description: Listener protocol to auto-resolve when LISTENER_ARN is blank
+      required: true
+    - name: LISTENER_PORT
+      type: String
+      value: <+input>.default(443)
+      description: Listener port to auto-resolve when LISTENER_ARN is blank (80 or 443)
       required: false
     - name: S3_BUCKET
       type: String
@@ -73,6 +83,8 @@ pipeline:
 
                       LB_NAME="<+pipeline.variables.LB_NAME>"
                       LISTENER_ARN_INPUT="<+pipeline.variables.LISTENER_ARN>"
+                      LISTENER_PROTOCOL="<+pipeline.variables.LISTENER_PROTOCOL>"
+                      LISTENER_PORT="<+pipeline.variables.LISTENER_PORT>"
                       S3_BUCKET="<+pipeline.variables.S3_BUCKET>"
                       LISTENERS_KEY="<+pipeline.variables.LISTENERS_KEY>"
                       RULES_KEY="<+pipeline.variables.RULES_KEY>"
@@ -105,17 +117,17 @@ pipeline:
                         if [ -z "$LISTENER_ARN" ]; then
                           LISTENER_ARN=$(aws elbv2 describe-listeners \
                             --load-balancer-arn "$LB_ARN" \
-                            --query 'Listeners[?Protocol==`HTTP` && Port==`80`].ListenerArn' \
+                            --query "Listeners[?Protocol==\`${LISTENER_PROTOCOL}\` && Port==\`${LISTENER_PORT}\`].ListenerArn" \
                             --output text | head -n1)
                         fi
                       fi
 
                       if [ -z "$LISTENER_ARN" ] || [ "$LISTENER_ARN" = "None" ]; then
-                        echo "No HTTP:80 listener found for $LB_NAME"
+                        echo "No ${LISTENER_PROTOCOL}:${LISTENER_PORT} listener found for $LB_NAME"
                         exit 1
                       fi
 
-                      echo "Using listener: $LISTENER_ARN"
+                      echo "Using listener: $LISTENER_ARN (${LISTENER_PROTOCOL}:${LISTENER_PORT})"
 
                       # Delete all non-default rules to start clean.
                       RULE_ARNS=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN" --query 'Rules[?Priority!=`default`].RuleArn' --output text)
@@ -171,7 +183,7 @@ pipeline:
                         local hosts_csv="$3"
                         shift 3
                         local paths=("$@")
-                        local action_json="[{'Type':'redirect','RedirectConfig':{'Protocol':'HTTP','Port':'80','Host':'#{host}','Path':'${target_path}','Query':'#{query}','StatusCode':'HTTP_302'}}]"
+                        local action_json="[{'Type':'redirect','RedirectConfig':{'Protocol':'${LISTENER_PROTOCOL}','Port':'${LISTENER_PORT}','Host':'#{host}','Path':'${target_path}','Query':'#{query}','StatusCode':'HTTP_302'}}]"
                         # AWS CLI expects double quotes; swap single quotes to double at runtime to avoid shell escaping issues.
                         action_json=$(echo "$action_json" | sed "s/'/\"/g")
                         local conditions=()

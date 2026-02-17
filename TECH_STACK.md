@@ -38,6 +38,7 @@
   - ECS (Fargate): Container orchestration
   - ECR: Image registry
   - RDS: Managed PostgreSQL
+  - Cognito: Authentication and token issuance (planned integration)
   - Lambda: Serverless functions (optional)
 
 ## Development Tools
@@ -100,6 +101,7 @@ graph TD
 ## Configuration Management
 - AWS credentials via AWS CLI/profile or Harness secrets
 - Database connection strings in secrets
+- Auth config via Cognito user pool/app client settings and JWT audience/issuer validation in APIs
 - Environment-specific settings:
   - `.NET`: `appsettings.Development.json`
   - Python: `.env` (+ `.env.example`)

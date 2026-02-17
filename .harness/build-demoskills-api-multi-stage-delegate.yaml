@@ -400,11 +400,15 @@ pipeline:
                       printf '\033[32mBuilt & pushed (service -> tag):\033[0m\n'
                       cat "$IMAGE_TAGS_FILE"
                       printf '\033[32mShort tags (copy/paste):\033[0m\n'
+                      echo
                       cat "$IMAGE_TAGS_SHORT"
-                      printf '\033[33mShort tags (single line):\033[0m\n'
-                      printf '\033[33m'
+                      echo
+                      printf '\033[33;7m--------------- COPY BUILD TAGS ---------------\033[0m\n'
+                      echo
                       tr '\n' ' ' < "$IMAGE_TAGS_SHORT"
-                      printf '\033[0m'
+                      echo
+                      echo
+                      printf '\033[33;7m--------------- ---------------- ---------------\033[0m\n'
                       echo
                       printf '\033[32mFull tags (copy/paste):\033[0m\n'
                       cat "$IMAGE_TAGS_ONLY"

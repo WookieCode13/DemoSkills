@@ -22,6 +22,8 @@ _env = os.getenv("ASPNETCORE_ENVIRONMENT", "production")
 _cors_origins = [
     "http://longranch.com",
     "http://dashboard.longranch.com",
+    "https://longranch.com",
+    "https://dashboard.longranch.com",
 ]
 if _env.lower() == "development":
     _cors_origins.extend(["http://longranch.wookie", "http://dashboard.longranch.wookie"])

@@ -5,7 +5,8 @@
 - Keep monthly budget under $20
 - [x] Try Beanstalk - it worked but i want a little more control
 - [x] Try EC2 - took awhile, but eventually got the API swagger up. (VPC issues)
-- [ ] Try ECS - want to use docker containers and ECS fargate.
+- [x] Try ECS - now using docker containers on ECS Fargate.
+- [ ] Setup Cognito user pool + app client for API JWT auth.
 
 ## Harness
 
@@ -24,3 +25,4 @@
 - Linux box for local test deployment
 - Docker + MicroK8s installed
 - VS Code for all projects
+- Use Cognito-issued bearer tokens in Swagger/Postman for secured endpoint testing (planned).

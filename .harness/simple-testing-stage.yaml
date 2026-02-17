@@ -1,96 +1,14 @@
-# just use this to test new ideas for the CI/CD pipeline
+# Simple scratch pipeline for testing printf/echo behavior in Harness.
 pipeline:
   name: Simple-Test-Stage-Ideas
   identifier: SimpleTestStageIdeas
   projectIdentifier: demo_skills_project
   orgIdentifier: default
   tags: {}
-  properties:
-    ci:
-      codebase:
-        connectorRef: git_proj_demoskills
-        build: <+input>
-
-  variables:
-    - name: SERVICE_NAME
-      type: String
-      value: "EmployeeAPI"
-      description: Choose the API to build.
-    - name: BUILD_TYPE
-      type: String
-      value: "PY"
-      default: CS
-      description: Choose C-Csharp(CS) or Python(PY) builder.
-
   stages:
     - stage:
         name: simple-test-idea-stage
         identifier: simpletestideastage
-        description: ""
-        type: CI
-        delegateSelectors:
-          - harness-docker-delegate-demoskills
-        spec:
-          cloneCodebase: true
-          platform:
-            os: Linux
-            arch: Amd64
-          runtime:
-            type: Docker
-            spec:
-              connectorRef: account.harnessImage
-          execution:
-            steps:
-              - step:
-                  type: Run
-                  name: Generate Image Name
-                  identifier: GENERATE_IMAGE_NAME
-                  spec:
-                    shell: Sh
-                    image: alpine:3.19
-                    outputVariables:
-                      - name: IMAGE_TAG
-                      - name: BUILD_REF
-                    command: |
-                      set -euo pipefail
-
-                      SERVICE_NAME="<+pipeline.variables.SERVICE_NAME>"
-                      GIT_SPEC_TAG="<+pipeline.properties.ci.codebase.build.spec.tag>"
-                      GIT_TAG="<+codebase.gitTag>"
-                      BRANCH="<+codebase.branch>"
-
-                      SAFE_BRANCH=$(echo "$BRANCH" | tr '/' '-') 
-                      CLEAN_BRANCH=$(echo "$SAFE_BRANCH" | sed 's/^feature-//')
-
-                      pick_first() {
-                        for val in "$@"; do
-                          if [ -n "$val" ] && [ "$val" != "null" ] && [ "$val" != "'null'" ]; then
-                            echo "$val"
-                            return 0
-                          fi
-                        done
-                        echo "manual"
-                      }
-
-                      # Order: explicit override -> git spec tag (manual input) -> git tag -> branch -> manual.
-                      BRANCH_OR_TAG="$(pick_first "$GIT_SPEC_TAG" "$GIT_TAG" "$CLEAN_BRANCH")"
-
-                      BUILD_REF="${BRANCH_OR_TAG}"
-                      IMAGE_TAG="${SERVICE_NAME}-${BUILD_REF}.b<+pipeline.sequenceId>"
-
-                      echo "GIT_SPEC_TAG=$GIT_SPEC_TAG"
-                      echo "GIT_TAG=$GIT_TAG"
-                      echo "BRANCH=$BRANCH"
-                      echo "Generated IMAGE_TAG: $IMAGE_TAG"
-                      echo "Generated BUILD_REF: $BUILD_REF"
-                      echo "IMAGE_TAG_FOR_COPY=$IMAGE_TAG"
-
-                      export IMAGE_TAG="$IMAGE_TAG"
-                      export BUILD_REF="$BUILD_REF"
-    # -------------------- STAGE 4: POST (optional) --------------------
-    - stage:
-        name: post
-        identifier: post
         type: CI
         delegateSelectors:
           - harness-docker-delegate-demoskills
@@ -107,14 +25,32 @@ pipeline:
             steps:
               - step:
                   type: Run
-                  name: log-image-tag
-                  identifier: Log_Image_Tag
+                  name: printf-and-echo-test
+                  identifier: printf_and_echo_test
                   spec:
                     shell: Sh
-                    command: |-
-                      IMAGE_TAG="<+pipeline.stages.simpletestideastage.spec.execution.steps.GENERATE_IMAGE_NAME.output.outputVariables.IMAGE_TAG>"
-                      BUILD_REF="<+pipeline.stages.simpletestideastage.spec.execution.steps.GENERATE_IMAGE_NAME.output.outputVariables.BUILD_REF>"
+                    image: alpine:3.19
+                    command: |
+                      SERVICE_NAME="EmployeeAPI"
+                      BUILD_REF="feature-employee-to-schema"
+                      IMAGE_TAG="${SERVICE_NAME}-${BUILD_REF}.b1234"
+                      IMAGE_TAGS_SHORT="/tmp/image_tags_short.txt"
+                      IMAGE_TAGS_ONLY="/tmp/image_tags_only.txt"
+
+                      printf '%s\n' "$IMAGE_TAG" > "$IMAGE_TAGS_SHORT"
+                      printf '%s\n' "123456789012.dkr.ecr.us-east-1.amazonaws.com/demoskills:$IMAGE_TAG" > "$IMAGE_TAGS_ONLY"
+
                       printf '\033[32m------------------------------------------------------------\033[0m\n'
-                      printf '\033[32m>>> Final IMAGE_TAG (for deploy or copy): %s <<<\033[0m\n' "$IMAGE_TAG"
-                      printf '\033[32m>>> Branch/Tag ref: %s <<<\033[0m\n' "$BUILD_REF"
+                      printf '\033[32mSimple Harness printf/echo test\033[0m\n'
+                      printf 'SERVICE_NAME=%s\n' "$SERVICE_NAME"
+                      printf 'BUILD_REF=%s\n' "$BUILD_REF"
+                      printf 'IMAGE_TAG=%s\n' "$IMAGE_TAG"
+                      printf '\033[32mShort tags (copy/paste):\033[0m\n'
+                      cat "$IMAGE_TAGS_SHORT"
+                      printf '\033[33mShort tags (single line):\033[0m\n'
+                      tr '\n' ' ' < "$IMAGE_TAGS_SHORT"
+                      echo
+                      printf '\033[32mFull tags (copy/paste):\033[0m\n'
+                      cat "$IMAGE_TAGS_ONLY"
                       printf '\033[32m------------------------------------------------------------\033[0m\n'
+

@@ -4,9 +4,9 @@ DemoSkills is a hands-on learning and showcase project that demonstrates modern 
 
 ## Project Status
 
-- **Phase**: Initial Setup
-- **Last Updated**: November 5, 2025
-- **Next Milestone**: Basic API Setup
+- **Phase**: API + AWS deployment hardening
+- **Last Updated**: February 16, 2026
+- **Next Milestone**: Employee tenant schema routing and security integration
 
 The project combines:
 
@@ -30,11 +30,11 @@ The project combines:
 
 ## 🔧 Current Focus
 
-1. Create a simple API.
-2. Set up Harness deployment to AWS (with budget awareness <$20/month).
-3. Add teardown pipeline to remove AWS resources automatically.
-4. Add unit and BDD tests.
-5. Add logging and token-based security.
+1. Implement tenant-aware employee persistence model (schema strategy).
+2. Wire company lifecycle events to employee tenant setup.
+3. Add Cognito-backed token security for APIs.
+4. Add TypeScript UI path in deployment workflow.
+5. Add first practical Lambda workflow.
 
 ---
 
@@ -54,7 +54,7 @@ This project uses AI tools to help design, build, and automate code:
 | Backend APIs    | C# (.NET 8), Python (FastAPI) |
 | Infrastructure  | AWS (Lambda, EC2), Docker     |
 | CI/CD           | Harness                       |
-| Auth            | Token-based (JWT)             |
+| Auth            | AWS Cognito (JWT/OIDC)        |
 | Testing         | Unit + BDD (SpecFlow, Pytest) |
 | Version Control | GitHub                        |
 | Frontend        | TBD (later phase)             |

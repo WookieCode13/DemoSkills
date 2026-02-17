@@ -43,6 +43,8 @@ try
     {
         "http://longranch.com",
         "http://dashboard.longranch.com",
+        "https://longranch.com",
+        "https://dashboard.longranch.com",
     };
     if (builder.Environment.IsDevelopment())
     {
