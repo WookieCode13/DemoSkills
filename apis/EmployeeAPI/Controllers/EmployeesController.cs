@@ -4,6 +4,7 @@ using EmployeeAPI.Contracts.Employees;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using EmployeeAPI.Mappings;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EmployeeAPI.Controllers;
 
@@ -37,6 +38,7 @@ public class EmployeesController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(List<EmployeeResponse>), StatusCodes.Status200OK)]
+    [Authorize]
     public async Task<ActionResult<List<EmployeeResponse>>> Employees(CancellationToken ct)
     {
         _logger.LogInformation("GET /employees requested");

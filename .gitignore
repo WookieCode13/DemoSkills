@@ -89,9 +89,12 @@ pytestdebug.log
 .env
 *.env
 !*.env.example
+.env.local
+**/.env.local
 
 # ---- Logs ----
 logs/
 *.log
 
 # ---- Local overrides ----
+apis/*/appsettings.Development.Local.json

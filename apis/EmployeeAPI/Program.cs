@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Formatting.Compact;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 // Bootstrap Serilog early
 Log.Logger = new LoggerConfiguration()
@@ -22,11 +23,14 @@ try
     // Comes from variable set in pipeline or default to "local"
     var buildBranch = Environment.GetEnvironmentVariable("BUILD_BRANCH") ?? "local";
 
-    // Optional per-environment local overrides (not committed): appsettings.{Environment}.Local.json
-    builder.Configuration.AddJsonFile(
-        $"appsettings.{builder.Environment.EnvironmentName}.Local.json",
-        optional: true,
-        reloadOnChange: true);
+    // Optional local overrides (not committed) for development only.
+    if (builder.Environment.IsDevelopment())
+    {
+        builder.Configuration.AddJsonFile(
+            $"appsettings.{builder.Environment.EnvironmentName}.Local.json",
+            optional: true,
+            reloadOnChange: true);
+    }
 
     // Use Serilog for logging
     builder.Host.UseSerilog((ctx, services, cfg) => cfg
@@ -88,6 +92,17 @@ try
         .AddLogging(logging => logging.AddFluentMigratorConsole());    
     builder.Services.AddHostedService<MigrationHostedService>();
 
+    builder.Services
+        .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.Authority = builder.Configuration["Jwt:Authority"];
+            options.Audience = builder.Configuration["Jwt:Audience"];
+        });
+
+    builder.Services.AddAuthorization();
+
+
     // Optional: serve the app under a sub-path (e.g., "/employee")
     var pathBase = builder.Configuration["PathBase"];
     if (!string.IsNullOrWhiteSpace(pathBase) && !pathBase.StartsWith("/"))
@@ -122,8 +137,7 @@ try
         app.UsePathBase(pathBase);
     }
 
-    //app.UseHttpsRedirection();
-
+    app.UseAuthentication();
     app.UseAuthorization();
 
     // Note: No root ("/") or top-level "/health" endpoints

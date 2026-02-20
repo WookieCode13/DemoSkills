@@ -14,7 +14,10 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.Local.json", optional: true, reloadOnChange: true);
+    if (builder.Environment.IsDevelopment())
+    {
+        builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.Local.json", optional: true, reloadOnChange: true);
+    }
 
     builder.Host.UseSerilog((ctx, services, cfg) => cfg
         .ReadFrom.Configuration(ctx.Configuration)
