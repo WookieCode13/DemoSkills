@@ -201,7 +201,7 @@ Check:
 
 In API config:
 - Authority: `https://cognito-idp.<region>.amazonaws.com/<UserPoolId>`
-- Audience: `<AppClientId>`
+- ClientId: `<AppClientId>`
 
 ### 7.1 Add config values
 In `appsettings.Development.json` (or env vars):
@@ -209,14 +209,14 @@ In `appsettings.Development.json` (or env vars):
 {
   "Jwt": {
     "Authority": "https://cognito-idp.us-east-1.amazonaws.com/<UserPoolId>",
-    "Audience": "<AppClientId>"
+    "ClientId": "<AppClientId>"
   }
 }
 ```
 
 Env var equivalents:
 - `Jwt__Authority`
-- `Jwt__Audience`
+- `Jwt__ClientId`
 
 ### 7.2 Wire auth in `Program.cs`
 Add JWT auth services:
@@ -228,7 +228,21 @@ builder.Services
     .AddJwtBearer(options =>
     {
         options.Authority = builder.Configuration["Jwt:Authority"];
-        options.Audience = builder.Configuration["Jwt:Audience"];
+        var expectedClientId = builder.Configuration["Jwt:ClientId"];
+        options.TokenValidationParameters.ValidateAudience = false;
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = context =>
+            {
+                var tokenUse = context.Principal?.FindFirst("token_use")?.Value;
+                var clientId = context.Principal?.FindFirst("client_id")?.Value;
+                if (tokenUse != "access" || clientId != expectedClientId)
+                {
+                    context.Fail("Invalid Cognito access token.");
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();

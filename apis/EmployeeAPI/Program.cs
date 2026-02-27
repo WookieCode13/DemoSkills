@@ -11,6 +11,9 @@ using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Formatting.Compact;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.IdentityModel.Tokens;
+using Shared.Security.Net.Middleware;
 
 // Bootstrap Serilog early
 Log.Logger = new LoggerConfiguration()
@@ -74,6 +77,31 @@ try
             Version = $"api v1 ({buildBranch})",
             Description = $"Build branch: {buildBranch}"
         });
+
+        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "Paste JWT access token only (no 'Bearer ' prefix)."
+        });
+
+        c.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
     });
 
     builder.Services.AddDbContext<AppDbContext>(options =>
@@ -81,6 +109,7 @@ try
     builder.Services.AddScoped<EmployeeService>();
     builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
     builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+    builder.Services.AddScoped<CompanyTenantMiddleware>();
 
     builder.Services.Configure<MigrationOptions>(builder.Configuration.GetSection("Migrations"));
     builder.Services
@@ -92,12 +121,55 @@ try
         .AddLogging(logging => logging.AddFluentMigratorConsole());    
     builder.Services.AddHostedService<MigrationHostedService>();
 
+ Console.WriteLine("-- JWT test console --");
+ Log.Information("-test log");
+
     builder.Services
         .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
             options.Authority = builder.Configuration["Jwt:Authority"];
-            options.Audience = builder.Configuration["Jwt:Audience"];
+            var expectedClientId = builder.Configuration["Jwt:ClientId"];
+            options.IncludeErrorDetails = true;
+
+            Console.WriteLine("-- JWT Configuration --");
+            Console.WriteLine($"Authority: {options.Authority}");
+            Console.WriteLine($"Expected Client ID: {expectedClientId}");
+            Log.Information("-- JWT Configuration --");
+            Log.Information($"Authority: {options.Authority}");
+            Log.Information($"Expected Client ID: {expectedClientId}");
+
+            // Cognito access tokens use `client_id` + `token_use=access` instead of relying on `aud`.
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateAudience = false
+            };
+
+            options.Events = new JwtBearerEvents
+            {
+                OnAuthenticationFailed = context =>
+                {
+                    Log.Warning("JWT authentication failed: {Message}", context.Exception.Message);
+                    return Task.CompletedTask;
+                },
+                OnChallenge = context =>
+                {
+                    Log.Warning("JWT challenge: error={Error} desc={Description}", context.Error, context.ErrorDescription);
+                    return Task.CompletedTask;
+                },
+                OnTokenValidated = context =>
+                {
+                    var tokenUse = context.Principal?.FindFirst("token_use")?.Value;
+                    var clientId = context.Principal?.FindFirst("client_id")?.Value;
+                    Log.Information("JWT token validated claims: token_use={TokenUse} client_id={ClientId}", tokenUse, clientId);
+                    if (tokenUse != "access" || string.IsNullOrWhiteSpace(expectedClientId) || clientId != expectedClientId)
+                    {
+                        context.Fail("Invalid Cognito access token.");
+                    }
+
+                    return Task.CompletedTask;
+                }
+            };
         });
 
     builder.Services.AddAuthorization();
@@ -112,6 +184,11 @@ try
 
     var app = builder.Build();
 
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost
+    });
+
     // Configure the HTTP request pipeline.
     // Enable Swagger based on config or environment
     var enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger", false) || app.Environment.IsDevelopment();
@@ -120,11 +197,26 @@ try
         app.UseSwagger(c =>
         {
             c.RouteTemplate = "swagger/{documentName}/swagger.json";
+            c.PreSerializeFilters.Add((swagger, httpReq) =>
+            {
+                var forwardedProto = httpReq.Headers["X-Forwarded-Proto"].ToString();
+                var forwardedHost = httpReq.Headers["X-Forwarded-Host"].ToString();
+                var scheme = string.IsNullOrWhiteSpace(forwardedProto) ? httpReq.Scheme : forwardedProto;
+                var host = string.IsNullOrWhiteSpace(forwardedHost) ? httpReq.Host.Value : forwardedHost;
+                var basePath = httpReq.PathBase.HasValue ? httpReq.PathBase.Value : string.Empty;
+                swagger.Servers = new List<OpenApiServer>
+                {
+                    new OpenApiServer { Url = $"{scheme}://{host}{basePath}" }
+                };
+            });
         });
         app.UseSwaggerUI(c =>
         {
             c.RoutePrefix = "swagger";
-            c.SwaggerEndpoint("v1/swagger.json", "EmployeeAPI v1");
+            var swaggerJsonPath = string.IsNullOrWhiteSpace(pathBase)
+                ? "/swagger/v1/swagger.json"
+                : $"{pathBase}/swagger/v1/swagger.json";
+            c.SwaggerEndpoint(swaggerJsonPath, "EmployeeAPI v1");
         });
     }
 
@@ -136,6 +228,9 @@ try
     {
         app.UsePathBase(pathBase);
     }
+
+    app.UseMiddleware<CompanyHeaderLoggingMiddleware>(); // classic
+    app.UseMiddleware<CompanyTenantMiddleware>();        // IMiddleware - scoped and can use DI
 
     app.UseAuthentication();
     app.UseAuthorization();
