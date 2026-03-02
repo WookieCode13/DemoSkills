@@ -21,7 +21,8 @@ services:
 
   employeeapi:
     build:
-      context: ./apis/EmployeeAPI
+      context: .
+      dockerfile: apis/EmployeeAPI/Dockerfile
     image: demoskills-employeeapi:local
     environment:
       ASPNETCORE_ENVIRONMENT: Development
