@@ -27,6 +27,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=${DEMOSKILLS_POSTGRES_DB?};Username=${DEMOSKILLS_POSTGRES_USER?};Password=${DEMOSKILLS_POSTGRES_PASSWORD?}
+      Jwt__Authority: ${DEMOSKILLS_JWT_AUTHORITY?}
+      Jwt__ClientId: ${DEMOSKILLS_JWT_CLIENT_ID?}
     depends_on:
       - postgres
 
