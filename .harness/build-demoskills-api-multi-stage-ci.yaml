@@ -172,10 +172,18 @@ pipeline:
 
                       echo "Building Docker image demo-image:$IMAGE_TAG"
 
-                      docker build \
-                        -t demo-image:$IMAGE_TAG \
-                        -f apis/$SERVICE_NAME/Dockerfile \
-                        apis/$SERVICE_NAME
+                      if [ "$SERVICE_NAME" = "EmployeeAPI" ] || [ "$SERVICE_NAME" = "PayAPI" ] || [ "$SERVICE_NAME" = "TaxCalculatorAPI" ]; then
+                        # .NET APIs reference Shared/Security project, so build from repo root context.
+                        docker build \
+                          -t demo-image:$IMAGE_TAG \
+                          -f apis/$SERVICE_NAME/Dockerfile \
+                          .
+                      else
+                        docker build \
+                          -t demo-image:$IMAGE_TAG \
+                          -f apis/$SERVICE_NAME/Dockerfile \
+                          apis/$SERVICE_NAME
+                      fi
 
                       IMAGE_LOCAL="demo-image:$IMAGE_TAG"
                       ECR_REPO="demoskills"

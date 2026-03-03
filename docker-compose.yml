@@ -44,7 +44,8 @@ services:
 
   payapi:
     build:
-      context: ./apis/PayAPI
+      context: .
+      dockerfile: apis/PayAPI/Dockerfile
     image: demoskills-payapi:local
     environment:
       ASPNETCORE_ENVIRONMENT: Development
@@ -54,7 +55,8 @@ services:
 
   taxcalculatorapi:
     build:
-      context: ./apis/TaxCalculatorAPI
+      context: .
+      dockerfile: apis/TaxCalculatorAPI/Dockerfile
     image: demoskills-taxcalculatorapi:local
     environment:
       ASPNETCORE_ENVIRONMENT: Development

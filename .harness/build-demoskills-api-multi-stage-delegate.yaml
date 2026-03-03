@@ -5,11 +5,11 @@
 # IMPORTANT: run locally > sudo -E ./harness-docker-runner-linux-amd64 server (keep running in background).
 # ALSO: CI-LITE-ENGINE is NOT needed on local machine. MUST install the Harness exe.
 pipeline:
-  name: DS - Build w Docker Delegate
+  name: DS - Build MultiStage w Docker Delegate
   identifier: DS_Build_w_Docker_Delegate
   projectIdentifier: demo_skills_project
   orgIdentifier: default
-  description: A pipeline that will use the Harness docker delegate.
+  description: A pipeline that will use the Harness docker delegate, multistage.
   tags: {}
 
   properties:
@@ -219,6 +219,12 @@ pipeline:
                           -t demo-image:$IMAGE_TAG \
                           -f dashboard/Dockerfile \
                           dashboard
+                      elif [ "$SERVICE_NAME" = "EmployeeAPI" ] || [ "$SERVICE_NAME" = "PayAPI" ] || [ "$SERVICE_NAME" = "TaxCalculatorAPI" ]; then
+                        # .NET APIs reference Shared/Security project, so build from repo root context.
+                        docker build \
+                          -t demo-image:$IMAGE_TAG \
+                          -f apis/$SERVICE_NAME/Dockerfile \
+                          .
                       else
                         docker build \
                           -t demo-image:$IMAGE_TAG \
@@ -383,6 +389,9 @@ pipeline:
 
                         if [ "$SERVICE_NAME" = "Dashboard" ]; then
                           docker build -t demo-image:$IMAGE_TAG -f dashboard/Dockerfile dashboard
+                        elif [ "$SERVICE_NAME" = "EmployeeAPI" ] || [ "$SERVICE_NAME" = "PayAPI" ] || [ "$SERVICE_NAME" = "TaxCalculatorAPI" ]; then
+                          # .NET APIs reference Shared/Security project, so build from repo root context.
+                          docker build -t demo-image:$IMAGE_TAG -f apis/$SERVICE_NAME/Dockerfile .
                         else
                           docker build -t demo-image:$IMAGE_TAG -f apis/$SERVICE_NAME/Dockerfile apis/$SERVICE_NAME
                         fi

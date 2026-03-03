@@ -10,9 +10,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Formatting.Compact;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.IdentityModel.Tokens;
+using Shared.Security.Net.Auth;
 using Shared.Security.Net.Middleware;
 
 // Bootstrap Serilog early
@@ -121,58 +120,7 @@ try
         .AddLogging(logging => logging.AddFluentMigratorConsole());    
     builder.Services.AddHostedService<MigrationHostedService>();
 
- Console.WriteLine("-- JWT test console --");
- Log.Information("-test log");
-
-    builder.Services
-        .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(options =>
-        {
-            options.Authority = builder.Configuration["Jwt:Authority"];
-            var expectedClientId = builder.Configuration["Jwt:ClientId"];
-            options.IncludeErrorDetails = true;
-
-            Console.WriteLine("-- JWT Configuration --");
-            Console.WriteLine($"Authority: {options.Authority}");
-            Console.WriteLine($"Expected Client ID: {expectedClientId}");
-            Log.Information("-- JWT Configuration --");
-            Log.Information($"Authority: {options.Authority}");
-            Log.Information($"Expected Client ID: {expectedClientId}");
-
-            // Cognito access tokens use `client_id` + `token_use=access` instead of relying on `aud`.
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateAudience = false
-            };
-
-            options.Events = new JwtBearerEvents
-            {
-                OnAuthenticationFailed = context =>
-                {
-                    Log.Warning("JWT authentication failed: {Message}", context.Exception.Message);
-                    return Task.CompletedTask;
-                },
-                OnChallenge = context =>
-                {
-                    Log.Warning("JWT challenge: error={Error} desc={Description}", context.Error, context.ErrorDescription);
-                    return Task.CompletedTask;
-                },
-                OnTokenValidated = context =>
-                {
-                    var tokenUse = context.Principal?.FindFirst("token_use")?.Value;
-                    var clientId = context.Principal?.FindFirst("client_id")?.Value;
-                    Log.Information("JWT token validated claims: token_use={TokenUse} client_id={ClientId}", tokenUse, clientId);
-                    if (tokenUse != "access" || string.IsNullOrWhiteSpace(expectedClientId) || clientId != expectedClientId)
-                    {
-                        context.Fail("Invalid Cognito access token.");
-                    }
-
-                    return Task.CompletedTask;
-                }
-            };
-        });
-
-    builder.Services.AddAuthorization();
+    builder.Services.AddDemoSkillsJwtAuth(builder.Configuration);
 
 
     // Optional: serve the app under a sub-path (e.g., "/employee")
