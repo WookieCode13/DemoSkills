@@ -1,13 +1,15 @@
-from typing import Annotated
-
 import os
-from fastapi import APIRouter, Body, FastAPI, HTTPException, Path, status
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
-from pydantic import BaseModel, Field
+
+from .api.reports import router as reports_router
+from .schemas.health import HealthResponse
+from .core.logger import configure_logging
 
 _build_branch = os.getenv("BUILD_BRANCH", "local")
 _root_path = os.getenv("ROOT_PATH", "")
+configure_logging()
+
 
 app = FastAPI(
     title="ReportAPI",
@@ -35,32 +37,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-class HealthResponse(BaseModel):
-    status: str
-    service: str
-
-
-class TodoResponse(BaseModel):
-    status: str
-    message: str
-
-
-class Report(BaseModel):
-    id: int = Field(..., examples=[1])
-    name: str = Field(..., min_length=1, examples=["Quarterly Summary"])
-    description: str | None = Field(default=None, examples=["Example report"])
-
-
-class ReportCreateRequest(BaseModel):
-    name: str = Field(..., min_length=1, examples=["Quarterly Summary"])
-    description: str | None = Field(default=None, examples=["Example report"])
-
-
-_reports: dict[int, Report] = {}
-_next_report_id = 1
-
-
 @app.get("/", tags=["ops"])
 def root():
     return {
@@ -76,47 +52,7 @@ def root_health() -> HealthResponse:
     return HealthResponse(status="ok", service="reportapi")
 
 
-router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
-
-
-@router.get("/health", response_model=HealthResponse, tags=["ops"])
-def health() -> HealthResponse:
-    return HealthResponse(status="ok", service="reportapi")
-
-
-@router.get("", response_model=TodoResponse, summary="List reports")
-def list_reports() -> TodoResponse:
-    return TodoResponse(status="todo", message="TODO: load reports from the database")
-
-
-@router.get("/{report_id}", response_model=TodoResponse, summary="Get report by id")
-def get_report(
-    report_id: Annotated[int, Path(..., ge=1, description="Report ID")]
-) -> TodoResponse:
-    return TodoResponse(
-        status="todo",
-        message=f"TODO: load report {report_id} from the database",
-    )
-
-
-@router.post("", response_model=Report, status_code=status.HTTP_201_CREATED, summary="Create report")
-def create_report(
-    request: Annotated[ReportCreateRequest, Body(..., description="Report to create")]
-) -> Report:
-    global _next_report_id
-
-    new_report = Report(
-        id=_next_report_id,
-        name=request.name.strip(),
-        description=(request.description.strip() if request.description else None),
-    )
-    _reports[new_report.id] = new_report
-    _next_report_id += 1
-    return new_report
-
-
-app.include_router(router)
-
+app.include_router(reports_router)
 
 if __name__ == "__main__":
     import uvicorn
