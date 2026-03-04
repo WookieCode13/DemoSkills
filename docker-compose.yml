@@ -34,11 +34,14 @@ services:
 
   companyapi:
     build:
-      context: ./apis/CompanyAPI
+      context: .
+      dockerfile: apis/CompanyAPI/Dockerfile
     image: demoskills-companyapi:local
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       DATABASE_URL: postgresql+psycopg://${DEMOSKILLS_POSTGRES_USER?}:${DEMOSKILLS_POSTGRES_PASSWORD?}@postgres:5432/${DEMOSKILLS_POSTGRES_DB?}
+      Jwt__Authority: ${DEMOSKILLS_JWT_AUTHORITY?}
+      Jwt__ClientId: ${DEMOSKILLS_JWT_CLIENT_ID?}
     depends_on:
       - postgres
 
@@ -66,11 +69,14 @@ services:
 
   reportapi:
     build:
-      context: ./apis/ReportAPI
+      context: .
+      dockerfile: apis/ReportAPI/Dockerfile
     image: demoskills-reportapi:local
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       DATABASE_URL: postgresql+psycopg://${DEMOSKILLS_POSTGRES_USER?}:${DEMOSKILLS_POSTGRES_PASSWORD?}@postgres:5432/${DEMOSKILLS_POSTGRES_DB?}
+      Jwt__Authority: ${DEMOSKILLS_JWT_AUTHORITY?}
+      Jwt__ClientId: ${DEMOSKILLS_JWT_CLIENT_ID?}
     depends_on:
       - postgres
 

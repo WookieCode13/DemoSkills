@@ -124,8 +124,8 @@ pipeline:
 
                         if [ "$SERVICE_NAME" = "Dashboard" ]; then
                           docker build -t demo-image:$IMAGE_TAG -f dashboard/Dockerfile dashboard
-                        elif [ "$SERVICE_NAME" = "EmployeeAPI" ] || [ "$SERVICE_NAME" = "PayAPI" ] || [ "$SERVICE_NAME" = "TaxCalculatorAPI" ]; then
-                          # .NET APIs reference Shared/Security project, so build from repo root context.
+                        elif [ "$SERVICE_NAME" = "EmployeeAPI" ] || [ "$SERVICE_NAME" = "PayAPI" ] || [ "$SERVICE_NAME" = "TaxCalculatorAPI" ] || [ "$SERVICE_NAME" = "CompanyAPI" ] || [ "$SERVICE_NAME" = "ReportAPI" ]; then
+                          # APIs that reference shared code should build from repo root context.
                           docker build -t demo-image:$IMAGE_TAG -f apis/$SERVICE_NAME/Dockerfile .
                         else
                           docker build -t demo-image:$IMAGE_TAG -f apis/$SERVICE_NAME/Dockerfile apis/$SERVICE_NAME

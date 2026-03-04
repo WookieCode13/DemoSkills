@@ -3,14 +3,16 @@
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app:/app/shared
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY apis/CompanyAPI/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r ./requirements.txt
 
-COPY src ./src
+COPY apis/CompanyAPI/src ./src
+COPY Shared/Security/py/shared_security_py ./shared/shared_security_py
 
 EXPOSE 8081
 ENV PORT=8081
