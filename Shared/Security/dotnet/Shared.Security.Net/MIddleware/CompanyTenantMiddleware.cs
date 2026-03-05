@@ -1,21 +1,13 @@
-using Microsoft.AspNetCore.Http;
-using System.Threading.Tasks;
-using Shared.Security.Net.Constants;
-
 namespace Shared.Security.Net.Middleware;
 
 
 public sealed class CompanyTenantMiddleware : IMiddleware
 {
     /// <summary>
-    /// LEARNING NOTE: this is a different middleware pattern than the standard one(classic like CompanyHeaderLoggingMiddleware) 
-    /// because we want to use it as a scoped service in the employee API and call it from the controllers, 
-    /// rather than using it in the pipeline for every request.
-    /// this is used in the employee API to set the company short name in the context for use in the repositories. 
-    /// This is not a standard middleware that can be used in the pipeline, 
-    /// it is used as a scoped service in the employee API and is called from the controllers. 
-    /// This is because we want to set the company short name in the context for use in the repositories, 
-    /// and we don't want to set it for every request, only for the requests that need it.
+    /// LEARNING NOTE: This middleware uses a different pattern than standard pipeline middleware
+    /// (such as CompanyHeaderLoggingMiddleware). It is registered as a scoped service in the
+    /// employee API and invoked explicitly from controllers to set the company short name in
+    /// the HTTP context for use by repositories, only for requests that require it.
     /// </summary>
     /// <param name="context"></param>
     /// <param name="next"></param>
