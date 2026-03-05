@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using TaxCalculatorAPI.Domain.Entities;
+using Shared.Security.Net.Auditing;
 
 namespace TaxCalculatorAPI.Infrastructure.Data;
 

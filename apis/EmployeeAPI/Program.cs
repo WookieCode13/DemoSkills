@@ -1,5 +1,3 @@
-using System;
-using EmployeeAPI.Application.Auditing;
 using EmployeeAPI.Application.Employees;
 using EmployeeAPI.Infrastructure.Data;
 using EmployeeAPI.Infrastructure.Auditing;
@@ -11,6 +9,7 @@ using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Formatting.Compact;
 using Microsoft.AspNetCore.HttpOverrides;
+using Shared.Security.Net.Auditing;
 using Shared.Security.Net.Auth;
 using Shared.Security.Net.Middleware;
 

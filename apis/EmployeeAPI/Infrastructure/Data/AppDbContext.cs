@@ -1,6 +1,7 @@
 using System.Text.Json;
 using EmployeeAPI.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Shared.Security.Net.Auditing;
 
 namespace EmployeeAPI.Infrastructure.Data;
 

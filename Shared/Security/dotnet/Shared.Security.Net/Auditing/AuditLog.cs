@@ -1,4 +1,4 @@
-namespace PayAPI.Domain.Entities;
+namespace Shared.Security.Net.Auditing;
 
 public class AuditLog
 {
