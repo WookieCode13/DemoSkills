@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using PayAPI.Contracts;
 
 namespace PayAPI.Controllers;
@@ -25,5 +26,12 @@ public class PayController : ControllerBase
         );
         _logger.LogInformation("Health check OK at {Timestamp}", payload.Timestamp);
         return Ok(payload);
+    }
+
+    [HttpGet]
+    [Authorize]
+    public IActionResult List()
+    {
+        return Ok(Array.Empty<object>());
     }
 }

@@ -32,4 +32,8 @@
     <Content Remove="**\obj\**" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\Shared\Security\dotnet\Shared.Security.Net\Shared.Security.Net.csproj" />
+  </ItemGroup>
+
 </Project>

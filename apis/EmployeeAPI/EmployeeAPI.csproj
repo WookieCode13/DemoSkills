@@ -19,6 +19,7 @@
     <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
   </ItemGroup>
 
   <!-- Exclude test sources under this project tree from being compiled into the API -->
@@ -31,6 +32,9 @@
     <None Remove="**\obj\**" />
     <Content Remove="**\bin\**" />
     <Content Remove="**\obj\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Shared\Security\dotnet\Shared.Security.Net\Shared.Security.Net.csproj" />
   </ItemGroup>
 
 </Project>

@@ -49,7 +49,7 @@ Main goal is to build a demo portfolio project that showcases my resume skills. 
 ## 🧪 Phase 5 — Testing & Security
 
 - [ ] Add unit and BDD tests
-- [ ] Implement token-based authentication
+- [ ] Implement token-based authentication (AWS Cognito JWT validation + authorization)
 - [ ] Add logging and monitoring
 
 ## 🗄️ Phase 6 — Database Integration
@@ -59,6 +59,13 @@ Main goal is to build a demo portfolio project that showcases my resume skills. 
 - [ ] Add migration script to create first tables
 - [ ] Add PostgreSQL DB in AWS
 - [ ] Connect APIs to DB (POST and GET)
+- [ ] Add tenant schema strategy for Employee data (short-code based)
+
+## ✅ Recent Progress (February 2026)
+
+- [x] Deployed latest `main` to AWS successfully.
+- [x] Added Company API service/repository structure and audit logging integration.
+- [x] Added `audit_log.changes` JSON support and reserved `note` for human comments.
 
 ## 🪁 Phase 7 — Serverless & Messaging
 

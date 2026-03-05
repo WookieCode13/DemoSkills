@@ -3,11 +3,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-COPY PayAPI.csproj .
-RUN dotnet restore "PayAPI.csproj"
+COPY apis/PayAPI/PayAPI.csproj apis/PayAPI/
+COPY Shared/Security/dotnet/Shared.Security.Net/Shared.Security.Net.csproj Shared/Security/dotnet/Shared.Security.Net/
+RUN dotnet restore "apis/PayAPI/PayAPI.csproj"
 
 COPY . .
-RUN dotnet publish "PayAPI.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "apis/PayAPI/PayAPI.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app

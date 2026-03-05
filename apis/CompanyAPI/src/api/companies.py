@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from shared_security_py.dependencies import get_current_principal
 
 from ..schemas.company import CompanyCreate, CompanyPatch, CompanyRead
 from ..schemas.health import HealthResponse
@@ -18,7 +19,10 @@ def health() -> HealthResponse:
     return HealthResponse(status="ok", service="companyapi")
 
 @router.get("/", response_model=list[CompanyRead])
-def get_companies(db: Session = Depends(get_db)) -> list[CompanyRead]:
+def get_companies(
+    db: Session = Depends(get_db),
+    _principal = Depends(get_current_principal),
+) -> list[CompanyRead]:
     service = CompanyService(db)
     return service.list_companies()
 

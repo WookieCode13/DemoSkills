@@ -71,6 +71,10 @@ pipeline:
                       DB_CONN_PROD: <+secrets.getValue("db_conn_prod")>
                       DB_URL_DEV: <+secrets.getValue("db_url_dev")>
                       DB_URL_PROD: <+secrets.getValue("db_url_prod")>
+                      JWT_AUTHORITY_DEV: <+secrets.getValue("jwt_authority_dev")>
+                      JWT_AUTHORITY_PROD: <+secrets.getValue("jwt_authority_prod")>
+                      JWT_CLIENT_ID_DEV: <+secrets.getValue("jwt_client_id_dev")>
+                      JWT_CLIENT_ID_PROD: <+secrets.getValue("jwt_client_id_prod")>
                     command: |-
                       set -euo pipefail
 
@@ -86,6 +90,8 @@ pipeline:
                       ECR_REPO="demoskills"
                       DB_CONN=""
                       DB_URL=""
+                      JWT_AUTHORITY=""
+                      JWT_CLIENT_ID=""
 
                       # Build list of tags to process (required).
                       IMAGE_TAG_LIST=$(echo "$MULTI_IMAGE_TAGS_RAW" | tr ',\n' ' ' | tr -s ' ')
@@ -106,9 +112,13 @@ pipeline:
                         if [ "$TARGET_ENV" = "Production" ]; then
                           DB_CONN="${DB_CONN_PROD:-}"
                           DB_URL="${DB_URL_PROD:-}"
+                          JWT_AUTHORITY="${JWT_AUTHORITY_PROD:-}"
+                          JWT_CLIENT_ID="${JWT_CLIENT_ID_PROD:-}"
                         else
                           DB_CONN="${DB_CONN_DEV:-}"
                           DB_URL="${DB_URL_DEV:-}"
+                          JWT_AUTHORITY="${JWT_AUTHORITY_DEV:-}"
+                          JWT_CLIENT_ID="${JWT_CLIENT_ID_DEV:-}"
                         fi
 
                         if [ -z "$DB_CONN" ]; then
@@ -117,6 +127,14 @@ pipeline:
                         fi
                         if [ -z "$DB_URL" ]; then
                           echo "ERROR: Database URL not provided for TARGET_ENV=$TARGET_ENV. Set db_url_dev/db_url_prod secrets."
+                          exit 1
+                        fi
+                        if [ -z "$JWT_AUTHORITY" ]; then
+                          echo "ERROR: JWT authority not provided for TARGET_ENV=$TARGET_ENV. Set jwt_authority_dev/jwt_authority_prod secrets."
+                          exit 1
+                        fi
+                        if [ -z "$JWT_CLIENT_ID" ]; then
+                          echo "ERROR: JWT client id not provided for TARGET_ENV=$TARGET_ENV. Set jwt_client_id_dev/jwt_client_id_prod secrets."
                           exit 1
                         fi
 
@@ -209,13 +227,15 @@ pipeline:
                                     .image = $image
                                     | .environment = (
                                         (.environment // [])
-                                        | map(select(.name != "BUILD_BRANCH" and .name != "BUILD_REF" and .name != "ASPNETCORE_ENVIRONMENT" and .name != "ConnectionStrings__Default"))
+                                        | map(select(.name != "BUILD_BRANCH" and .name != "BUILD_REF" and .name != "ASPNETCORE_ENVIRONMENT" and .name != "ConnectionStrings__Default" and .name != "DATABASE_URL" and .name != "Jwt__Authority" and .name != "Jwt__ClientId"))
                                       + [
                                           { "name": "BUILD_BRANCH", "value": $build_ref },
                                           { "name": "BUILD_REF", "value": $build_ref },
                                           { "name": "ASPNETCORE_ENVIRONMENT", "value": "'$TARGET_ENV'" },
                                           { "name": "ConnectionStrings__Default", "value": "'$DB_CONN'" },
-                                          { "name": "DATABASE_URL", "value": "'$DB_URL'" }
+                                          { "name": "DATABASE_URL", "value": "'$DB_URL'" },
+                                          { "name": "Jwt__Authority", "value": "'$JWT_AUTHORITY'" },
+                                          { "name": "Jwt__ClientId", "value": "'$JWT_CLIENT_ID'" }
                                         ]
                                     )
                                 else . end

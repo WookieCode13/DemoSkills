@@ -2,6 +2,7 @@ using System;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Formatting.Compact;
+using Shared.Security.Net.Auth;
 
 var buildBranch = Environment.GetEnvironmentVariable("BUILD_BRANCH") ?? "local";
 
@@ -14,7 +15,10 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.Local.json", optional: true, reloadOnChange: true);
+    if (builder.Environment.IsDevelopment())
+    {
+        builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.Local.json", optional: true, reloadOnChange: true);
+    }
 
     builder.Host.UseSerilog((ctx, services, cfg) => cfg
         .ReadFrom.Configuration(ctx.Configuration)
@@ -28,6 +32,8 @@ try
     {
         "http://longranch.com",
         "http://dashboard.longranch.com",
+        "https://longranch.com",
+        "https://dashboard.longranch.com",
     };
     if (builder.Environment.IsDevelopment())
     {
@@ -50,7 +56,31 @@ try
             Version = $"v1 - {buildBranch}",
             Description = $"Build branch: {buildBranch}"
         });
+        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "Paste JWT access token only (no 'Bearer ' prefix)."
+        });
+        c.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
     });
+    builder.Services.AddDemoSkillsJwtAuth(builder.Configuration);
 
     var app = builder.Build();
 
@@ -70,6 +100,7 @@ try
 
     app.UseSerilogRequestLogging();
     app.UseCors(corsPolicyName);
+    app.UseAuthentication();
     app.UseAuthorization();
 
     app.MapControllers();

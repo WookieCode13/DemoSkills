@@ -17,7 +17,7 @@ namespace EmployeeAPI.UnitTests.Controllers
         public EmployeesControllerTests()
         {
             _loggerMock = new Mock<ILogger<EmployeesController>>();
-            _controller = new EmployeesController(_loggerMock.Object);
+            _controller = new EmployeesController(_loggerMock.Object, null!);
             _httpContext = new DefaultHttpContext();
             _httpContext.Connection.RemoteIpAddress = IPAddress.Parse("127.0.0.1");
             _controller.ControllerContext = new ControllerContext

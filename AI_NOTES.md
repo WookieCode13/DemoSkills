@@ -77,3 +77,12 @@ Goal: have Harness deploy to AWS and also run a teardown pipeline.
 - Host-based ALB rules redirect Python docs to /docs; Swagger routes standardized.
 - CORS enabled for http://longranch.com and http://dashboard.longranch.com.
 - Next goals: DB migrations (FluentMigrator/Alembic), RDS wiring, remove fake GET data (return TODO payloads), evolve dashboard into a SPA with real service data.
+
+---
+
+## 2026-02-16 - Audit Model + Next Security Direction
+- Merged and deployed `main` to AWS successfully.
+- Updated audit model so structured change data is stored in `audit_log.changes` (json/jsonb usage), while `note` is reserved for human comments.
+- Confirmed short-term roadmap: employee tenant schema routing, event-driven schema creation from company lifecycle, UI framework selection support in deploy flow, and first Lambda use case.
+- Security direction selected: use AWS Cognito for JWT issuance/validation and then apply authorization claims/roles in APIs.
+- Swagger plan: keep testing flow via bearer tokens from Cognito while UI login evolves.
