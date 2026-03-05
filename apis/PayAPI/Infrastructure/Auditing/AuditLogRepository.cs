@@ -1,6 +1,5 @@
-using PayAPI.Application.Auditing;
-using PayAPI.Domain.Entities;
 using PayAPI.Infrastructure.Data;
+using Shared.Security.Net.Auditing;
 
 namespace PayAPI.Infrastructure.Auditing;
 

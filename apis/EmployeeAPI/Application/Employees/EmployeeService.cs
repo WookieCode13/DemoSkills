@@ -1,9 +1,9 @@
 using EmployeeAPI.Contracts.Employees;
 using EmployeeAPI.Domain.Entities;
 using EmployeeAPI.Mappings;
-using EmployeeAPI.Application.Auditing;
 using Microsoft.Extensions.Logging;
 using EmployeeAPI.Application.Logging;
+using Shared.Security.Net.Auditing;
 
 namespace EmployeeAPI.Application.Employees;
 

@@ -1,6 +1,4 @@
-using EmployeeAPI.Domain.Entities;
-
-namespace EmployeeAPI.Application.Auditing;
+namespace Shared.Security.Net.Auditing;
 
 public interface IAuditLogRepository
 {
