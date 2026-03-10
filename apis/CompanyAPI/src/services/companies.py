@@ -1,5 +1,6 @@
 """Company business logic (service layer)."""
 import logging
+import re
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -12,6 +13,9 @@ from ..schemas.company import CompanyCreate, CompanyPatch, CompanyRead
 from .audit import AuditService
 
 logger = logging.getLogger(__name__)
+
+_RESERVED_SHORT_CODE_FRAGMENTS = ("auth",)
+_SHORT_CODE_PATTERN = re.compile(r"^[A-Z0-9]{10}$")
 
 class CompanyService:
     def __init__(self, db: Session) -> None:
@@ -42,8 +46,27 @@ class CompanyService:
             return None
         logger.info("Found company by short_code short_code=%s company_id=%s", short_code, company.id)
         return CompanyRead.model_validate(company) if company else None
+
+    def _validate_short_code(self, short_code: str) -> None:
+        if not _SHORT_CODE_PATTERN.fullmatch(short_code):
+            logger.warning(
+                "Rejected company short_code=%s because it must contain only uppercase letters and digits",
+                short_code,
+            )
+            raise HTTPException(status_code=400, detail="Invalid short code")
+
+        lowered_short_code = short_code.lower()
+        for fragment in _RESERVED_SHORT_CODE_FRAGMENTS:
+            if fragment in lowered_short_code:
+                logger.warning(
+                    "Rejected company short_code=%s because reserved fragment '%s' was used",
+                    short_code,
+                    fragment,
+                )
+                raise HTTPException(status_code=400, detail="Reserved name")
     
     def create_company(self, payload: CompanyCreate) -> CompanyRead:
+        self._validate_short_code(payload.short_code)
         logger.info("Creating company short_code=%s name=%s", payload.short_code, payload.name)
         new_company = CompanyModel(
             short_code=payload.short_code,

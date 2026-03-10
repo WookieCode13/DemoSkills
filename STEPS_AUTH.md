@@ -19,7 +19,14 @@ Created shared folders:
 
 Purpose:
 - Keep auth/tenant logic reusable across APIs.
-- Implement once, consume in EmployeeAPI/CompanyAPI/ReportAPI.
+- Implement once, consume in EmployeeAPI/CompanyAPI/ReportAPI/PayAPI/TaxCalculatorAPI.
+
+Current implementation notes:
+- `.NET` shared auth is wired through `Shared.Security.Net.Auth.AddDemoSkillsJwtAuth(...)`.
+- `EmployeeAPI`, `PayAPI`, and `TaxCalculatorAPI` currently use the shared `.NET` JWT validation.
+- `CompanyAPI` and `ReportAPI` currently use `shared_security_py.get_current_principal`.
+- Docker Compose now expects `DEMOSKILLS_JWT_AUTHORITY` and `DEMOSKILLS_JWT_CLIENT_ID` for all APIs.
+- Python API containers use `PYTHONPATH=/app:/app/shared`; keep shared import bootstrap logic container-safe.
 
 
 ## Pre Steps: Check for HTTPS 443
@@ -53,12 +60,43 @@ Use this first version:
   - `internal_admin` (precedence `100`)
   - `internal_support` (precedence `300`)
   - `external_user` (precedence `500`)
+  - `external_employee` (precedence `700`)
 - Authorization model:
   - Use JWT claims for identity and coarse role/group.
   - Use DB mapping tables for tenant access decisions.
 
 Done when:
 - You agree on the above and keep it consistent in docs/code.
+
+## Step 0.5: Role Design Working Section
+
+Use this section for the role model you are designing next.
+
+Keep these base roles:
+- `100`
+- `300`
+- `500`
+- `700`
+
+Suggested structure to paste in below:
+- Role name
+- Base level (`100` / `300` / `500` / `700`)
+- Intended users
+- Allowed APIs/endpoints
+- Read vs write permissions
+- Tenant-scoped or global
+- Notes/questions
+
+Role design draft:
+- `internal_admin` (`100`):
+- `internal_support` (`300`):
+- `external_user` (`500`):
+- `external_employee` (`700`):
+
+Open questions:
+- Which claim will carry role information: Cognito group, custom claim, or both?
+- Will `100/300/500/700` map 1:1 to Cognito groups, or will groups expand later into named roles?
+- Which endpoints stay public (`/health`, Swagger/docs), and which require auth by default?
 
 ## Step 1: Create Cognito User Pool
 
@@ -218,6 +256,12 @@ Env var equivalents:
 - `Jwt__Authority`
 - `Jwt__ClientId`
 
+Current repo note:
+- For Docker Compose, these come from:
+  - `DEMOSKILLS_JWT_AUTHORITY`
+  - `DEMOSKILLS_JWT_CLIENT_ID`
+- PayAPI and TaxCalculatorAPI now require these at startup just like EmployeeAPI.
+
 ### 7.2 Wire auth in `Program.cs`
 Add JWT auth services:
 ```csharp
@@ -287,6 +331,13 @@ Verification:
 Done when:
 - EmployeeAPI uses shared security package and passes basic auth checks.
 
+Current status:
+- EmployeeAPI: shared `.NET` auth wired
+- PayAPI: shared `.NET` auth wired
+- TaxCalculatorAPI: shared `.NET` auth wired
+- CompanyAPI: shared Python auth wired
+- ReportAPI: shared Python auth wired
+
 ## Step 8: Connect Swagger to Cognito
 
 In Swagger/OpenAPI config:
@@ -336,11 +387,23 @@ Why:
 ## Step 10: Add Authorization Roles (Next Iteration)
 
 Recommended:
-- Use Cognito groups for role checks:
+- Keep the base role levels:
+  - `100`
+  - `300`
+  - `500`
+  - `700`
+- Keep the current group names:
   - `internal_admin`
   - `internal_support`
   - `external_user`
+  - `external_employee`
+- Decide whether those are represented directly as Cognito groups or mapped from named groups.
 - Enforce policies in API per endpoint
+
+Suggested rollout:
+- Start with read-only `GET` protection in each API.
+- Then add write checks for `POST`/`PATCH`/`DELETE`.
+- Keep policy names aligned across `.NET` and Python implementations.
 
 Done when:
 - Unauthorized role gets `403`.
@@ -357,3 +420,394 @@ Done when:
 
 Done when:
 - Security baseline is documented and active in deployed environments.
+
+
+#  ---- my thoughts  ----
+
+## Authorization Design (DemoSkills – Initial Version)
+
+Goal: implement a **middle-complexity authorization model** that is not over-engineered but supports:
+- internal staff access
+- external company users
+- switching companies
+- CRUD permissions by role
+- future employee self-service access
+
+Authentication is handled by **Cognito JWT tokens**.  
+Authorization logic is handled by **application code + database tables**.
+
+---
+
+# Authentication
+
+JWT token provides identity and coarse trust level.
+
+Claims used:
+
+- `sub` → Cognito user identifier
+- `email`
+- `user_level` (optional convenience)
+
+JWT is validated by each API (.NET and Python shared security libraries).
+
+After validation the claims become the **principal**.
+
+---
+
+# User Privilege Levels
+
+Lower number = higher privilege.
+
+| Level | Description |
+|------|-------------|
+| 100 | super_admin |
+| 300 | internal customer roles (cust_manager, cust_service) |
+| 500 | external company users (owner, payroll_admin) |
+| 700 | future employee self-service users |
+
+Level is used for **broad authorization rules**, not fine permissions.
+
+Example rules:
+
+- `100` → full system access
+- `300` → internal users, may access many companies
+- `500` → external users, limited to assigned companies
+- `700` → employee self-service only
+
+---
+
+# Company Switching
+
+Users may access multiple companies.
+
+Each request selects the **active company**.
+
+Current mechanism:
+
+```
+X-Company: COMPANY_CODE
+```
+
+Future option:
+```
+/companies/{companyCode}/...
+```
+
+## My Thoughts Reworked Into A V1 Model
+
+Goal:
+- Keep authentication in Cognito.
+- Keep authorization in Postgres.
+- Use a global base role for coarse system blocking.
+- Use company-scoped roles for detailed business permissions.
+
+This gives two layers:
+- Layer 1: base role decides broad access to systems/modules
+- Layer 2: company role decides what the user can do inside that company
+
+## Authorization Design V2
+
+### Core Idea
+
+Use three layers:
+- base role on the user for coarse system access
+- optional all-companies role on the user for global company-scope permissions
+- company-specific role on membership for per-company permissions
+
+Interpretation:
+- base role answers: "Should this user be in this system at all?"
+- all-companies role answers: "What can this user do across all companies?"
+- company role answers: "What can this user do for this specific company?"
+
+### Base Roles
+
+Global base roles:
+- `100` = `internal_admin`
+- `300` = `internal_support`
+- `500` = `external_user`
+- `700` = `external_employee`
+
+Purpose of base role:
+- coarse system blocking
+- high-level persona for UI shaping
+- top-level security boundary before detailed permission checks
+
+Examples:
+- `700 external_employee` can be blocked from payroll entirely
+- `500 external_user` may access customer-facing systems only
+- `300 internal_support` may access support/admin systems
+- `100 internal_admin` may access all systems
+
+The future SPA can also use base role for:
+- app/module visibility
+- nav layout
+- dashboard widget visibility
+
+Important:
+- frontend can shape UI from base role
+- backend must still enforce all access rules
+
+### Recommended V2 Tables
+
+Schema naming note:
+- use one shared internal auth schema named `_auth`
+- example tables:
+  - `_auth.app_user`
+  - `_auth.role`
+  - `_auth.permission`
+  - `_auth.user_company_access`
+  - `_auth.role_permission`
+- reserve leading `_` for internal/system-owned schemas
+- tenant/company-derived schemas should not use `_`
+
+#### _auth.app_user
+
+Represents authenticated identities from Cognito.
+
+Fields:
+- `app_user_id`
+- `cognito_sub`
+- `email`
+- `base_role_level`
+- `global_role_code`
+- `is_active`
+- `created_utc`
+- `updated_utc`
+
+Notes:
+- `base_role_level` is global and coarse
+- `global_role_code` is nullable
+- `NULL` means the user has no global any-company role
+- if present, `global_role_code` applies across any company
+
+Examples:
+- internal admin:
+  - `base_role_level = 100`
+  - `global_role_code = super_admin`
+- support manager:
+  - `base_role_level = 300`
+  - `global_role_code = support_manager`
+- new hire support:
+  - `base_role_level = 300`
+  - `global_role_code = NULL`
+
+#### _auth.user_company_access
+
+Represents company membership for a user.
+
+Fields:
+- `user_company_access_id`
+- `app_user_id`
+- `company_id`
+- `company_role_code`
+- `is_active`
+- `created_utc`
+- `updated_utc`
+
+Notes:
+- this stores company-specific roles
+- use `company_id` as the source of truth, not `company_short_code`
+- external users usually require rows here
+- internal users can also use rows here for company-specific elevated access
+
+Examples:
+- customer service rep assigned to 12 client companies
+- external payroll admin for one company
+- owner/admin for a single tenant
+
+#### _auth.role
+
+Defines role identities separately from permissions.
+
+Fields:
+- `role_code`
+- `role_name`
+- `description`
+- `is_active`
+- `created_utc`
+- `updated_utc`
+
+Notes:
+- users are assigned roles
+- roles expand into many permission rows
+- keep role definitions separate from permission definitions
+
+#### _auth.permission
+
+Defines atomic permissions.
+
+Fields:
+- `permission_code`
+- `permission_name`
+- `description`
+- `system_code`
+- `resource_code`
+- `can_create`
+- `can_read`
+- `can_update`
+- `can_delete`
+- `is_active`
+- `created_utc`
+- `updated_utc`
+
+Notes:
+- prefer `resource_code` over raw `endpoint_code`
+- resource/action is easier to maintain than route-by-route permissions
+- this table defines the actual allowed operations
+- examples:
+  - `pay-view`
+  - `pay-save`
+  - `pay-delete`
+  - `company-read`
+  - `company-update`
+
+#### _auth.role_permission
+
+Maps roles to permissions.
+
+Fields:
+- `role_code`
+- `permission_code`
+- `created_utc`
+
+Notes:
+- `role_code` should reference `_auth.role.role_code`
+- `permission_code` should reference `_auth.permission.permission_code`
+- both `global_role_code` and `user_company_access.company_role_code` resolve into this same permission model
+
+Example:
+
+| role | permission |
+|-----|------|
+| support_manager | company-read |
+| support_manager | company-update |
+| payroll_admin | pay-view |
+| payroll_admin | pay-save |
+| employee | employee-profile-read |
+
+### Recommended Authorization Flow
+
+For each request:
+
+1. Validate JWT
+2. Build principal from claims
+3. Load `_auth.app_user` by `cognito_sub`
+4. Check `base_role_level` against the target system
+5. Determine active company
+6. Resolve effective role:
+   - if a company-specific role exists in `_auth.user_company_access`, use it
+   - else if `global_role_code` exists, use it
+   - else deny
+7. Load role metadata from `_auth.role` if needed
+8. Resolve role permissions through `_auth.role_permission`
+9. Evaluate the needed permission from `_auth.permission`
+10. Set Postgres schema for the request
+11. Execute the request
+
+This keeps one shared authorization path for internal and external users.
+
+### How To Determine Active Company
+
+This should be explicit.
+
+Recommended order:
+1. trusted company selector from request/header/path
+2. resolve company by short code
+3. get `company_id`
+4. resolve effective role for that company
+5. then set schema
+
+Future improvement:
+- allow a default company for SPA convenience
+
+### Example Scenarios
+
+Example 1: internal admin
+- `base_role_level = 100`
+- `global_role_code = super_admin`
+- request goes to payroll API for any company
+- system access is allowed by base role
+- effective role resolves to `super_admin`
+- request succeeds if `super_admin` allows that action
+
+Example 2: new hire support user
+- `base_role_level = 300`
+- `global_role_code = NULL`
+- no `_auth.user_company_access` rows yet
+- user can enter support-facing systems only if allowed by base role
+- user cannot act on any company data yet because no effective role resolves
+
+Example 3: customer service rep
+- `base_role_level = 300`
+- `global_role_code = customer_service_read`
+- user also has `_auth.user_company_access` rows for assigned clients with role `customer_service`
+- result:
+  - broad read/search can come from `customer_service_read`
+  - update permissions for assigned clients come from `_auth.user_company_access.company_role_code`
+
+Example 4: external payroll admin
+- `base_role_level = 500`
+- `global_role_code = NULL`
+- membership exists for `DEMOSKILLS`
+- membership role is `payroll_admin`
+- request to pay API for `DEMOSKILLS` succeeds
+- request to a different company fails
+
+Example 5: external employee self-service
+- `base_role_level = 700`
+- request goes to payroll admin endpoint
+- denied before role lookup
+- reason: base role blocks the payroll system
+
+### Why V2 Seems Better
+
+It keeps the strong parts of v1:
+- Cognito handles identity
+- DB handles authorization
+- same shared rules can apply in `.NET` and Python
+
+It also models your newer cases better:
+- support managers with global cross-company roles
+- customer service with broad read but assigned-company updates
+ation to - new hires with a support base role but no company access yet
+- future SPA shaping from base role without trusting the SPA for enforcement
+
+### V2 Recommendation
+
+Build this first:
+- global `base_role_level` on `_auth.app_user`
+- nullable `global_role_code` on `_auth.app_user`
+- role definitions in `_auth.role`
+- permission definitions in `_auth.permission`
+- company-specific `company_role_code` on `_auth.user_company_access`
+- role-to-permission mappings in `_auth.role_permission`
+
+Do not build yet:
+- custom per-user permission overrides
+- route-by-route metadata tables
+- central auth microservice
+
+Initial version should stay simple, predictable, and easy to debug.
+
+## Monday TODOs
+
+- Finalize auth naming set for tables, columns, and role codes.
+- Decide exact V1 constraints and keys:
+  - UUID vs int keys
+  - unique keys for `cognito_sub`, email, and company access rows
+- Draft the first auth migrations for:
+  - `_auth.app_user`
+  - `_auth.role`
+  - `_auth.permission`
+  - `_auth.user_company_access`
+  - `_auth.role_permission`
+- Define the first permission rows:
+  - `company_api`
+  - `employee_api`
+  - `pay_api`
+  - `tax_api`
+  - `report_api`
+- Start role enforcement design in shared auth:
+  - `.NET` policies/helpers
+  - Python dependencies/helpers
+- Revisit CompanyAPI Python test runner/launcher issue if needed.
