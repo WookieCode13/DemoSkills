@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Shared.Security.Net.Auditing;
 using Shared.Security.Net.Auth;
 using Shared.Security.Net.Middleware;
+using EmployeeAPI.Infrastructure.Auth;
 
 // Bootstrap Serilog early
 Log.Logger = new LoggerConfiguration()
@@ -108,6 +109,9 @@ try
     builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
     builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
     builder.Services.AddScoped<CompanyTenantMiddleware>();
+    builder.Services.AddScoped<IUserAuthRepository, UserAuthRepository>();
+    builder.Services.AddScoped<IUserAuthContextProvider, UserAuthContextProvider>();
+    builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
 
     builder.Services.Configure<MigrationOptions>(builder.Configuration.GetSection("Migrations"));
     builder.Services
@@ -116,11 +120,11 @@ try
             .AddPostgres()
             .WithGlobalConnectionString(builder.Configuration.GetConnectionString("Default") ?? string.Empty)
             .ScanIn(typeof(MigrationHostedService).Assembly).For.Migrations())
-        .AddLogging(logging => logging.AddFluentMigratorConsole());    
+        .AddLogging(logging => logging.AddFluentMigratorConsole());
+
     builder.Services.AddHostedService<MigrationHostedService>();
-
     builder.Services.AddDemoSkillsJwtAuth(builder.Configuration);
-
+    builder.Services.AddHttpContextAccessor();
 
     // Optional: serve the app under a sub-path (e.g., "/employee")
     var pathBase = builder.Configuration["PathBase"];
@@ -185,6 +189,19 @@ try
     // Note: No root ("/") or top-level "/health" endpoints
 
     app.MapControllers();
+
+
+    app.MapGet("/auth/test", async (IAuthorizationService auth) =>
+    {
+        var allowed = await auth.HasPermissionAsync("employee-profile-read");
+
+        return Results.Ok(new
+        {
+            permission = "employee-profile-read",
+            allowed
+        });
+    });
+
 
     Log.Information("Starting EmployeeAPI");
     app.Run();

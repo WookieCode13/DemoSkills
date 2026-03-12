@@ -811,3 +811,27 @@ Initial version should stay simple, predictable, and easy to debug.
   - `.NET` policies/helpers
   - Python dependencies/helpers
 - Revisit CompanyAPI Python test runner/launcher issue if needed.
+
+
+
+Auth
+ ├─ IAuthorizationService
+ ├─ AuthorizationService
+ ├─ IUserAuthContextProvider
+ ├─ IUserAuthRepository
+ ├─ UserAuthContext
+ └─ UserPermission
+
+Request
+   ↓
+JWT Auth
+   ↓
+IUserAuthContextProvider
+   ↓
+IUserAuthRepository (DB lookup)
+   ↓
+UserAuthContext
+   ↓
+AuthorizationService
+   ↓
+Permission decision
