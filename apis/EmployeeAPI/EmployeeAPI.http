@@ -9,3 +9,7 @@ Accept: application/json
 
 ### Swagger UI (HTML)
 GET {{EmployeeAPI_HostAddress}}/swagger
+
+### Test authentication (replace with a valid token)
+GET {{EmployeeAPI_HostAddress}}/auth/test
+Authorization: Bearer {{access_token}}

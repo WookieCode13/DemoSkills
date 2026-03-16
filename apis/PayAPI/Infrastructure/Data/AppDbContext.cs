@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using PayAPI.Domain.Entities;
+using Shared.Security.Net.Auditing;
 
 namespace PayAPI.Infrastructure.Data;
 

@@ -1,12 +1,16 @@
 # DemoSkills
 
-DemoSkills is a hands-on learning and showcase project that demonstrates modern backend development, DevOps, and AI-assisted coding workflows.
+DemoSkills is a personal learning and portfolio project for practicing modern backend development, DevOps, cloud deployment, and AI-assisted coding workflows.
+
+It is intentionally a work in progress. The repo is used to explore architecture ideas, compare implementation approaches, and document what I am learning while building a multi-service system over time.
 
 ## Project Status
 
-- **Phase**: API + AWS deployment hardening
-- **Last Updated**: February 16, 2026
-- **Next Milestone**: Employee tenant schema routing and security integration
+- **Phase**: Multi-service API development and deployment practice
+- **Current Work**: Authorization, tenant routing, and deployment workflow cleanup
+- **Next Milestone**: Stabilize shared auth/role setup and continue tenant-aware employee persistence
+
+This is not presented as a production-ready product. It is a practice environment for building skills across APIs, infrastructure, authentication, testing, and delivery workflows.
 
 The project combines:
 
@@ -22,28 +26,31 @@ The project combines:
 
 - [Technical Stack](./TECH_STACK.md)
 - [Project Structure](./STRUCTURE.md)
-- [AI Development Guide](./AI_NOTES.md)
-- [Setup Instructions](./SETUP_NOTES.md)
-- [Project Roadmap](./PLAN.md)
+- [Archived AI Notes](./docs/archive/AI_NOTES.md)
+- [Archived Setup Notes](./docs/archive/SETUP_NOTES.md)
+- [Archived Project Plan](./docs/archive/PLAN.md)
+- [Archive Index](./docs/archive/README.md)
 
 ---
 
 ## 🔧 Current Focus
 
-1. Implement tenant-aware employee persistence model (schema strategy).
-2. Wire company lifecycle events to employee tenant setup.
-3. Add Cognito-backed token security for APIs.
-4. Add TypeScript UI path in deployment workflow.
-5. Add first practical Lambda workflow.
+1. Clean up shared authorization roles, permissions, and migration flow.
+2. Continue tenant-aware employee persistence and company-driven tenant setup.
+3. Keep JWT/Cognito auth wiring consistent across APIs and local docker.
+4. Expand deployment automation and document the current AWS path more clearly.
+5. Continue filling in practical end-to-end workflows across APIs and supporting services.
 
 ---
 
 ## 🧠 About the Approach
 
-This project uses AI tools to help design, build, and automate code:
+This project uses AI tools to help design, build, review, and automate code as part of the learning process:
 
 - **ChatGPT (GPT-5)** – for architecture, planning, and documentation.
 - **GitHub Copilot Chat** – for inline coding and local automation.
+
+Older planning, setup, and experiment notes are kept under [`docs/archive/`](./docs/archive/README.md) instead of the repo root.
 
 ---
 
@@ -52,12 +59,12 @@ This project uses AI tools to help design, build, and automate code:
 | Layer           | Technology                    |
 | --------------- | ----------------------------- |
 | Backend APIs    | C# (.NET 8), Python (FastAPI) |
-| Infrastructure  | AWS (Lambda, EC2), Docker     |
+| Infrastructure  | AWS (ECS/Fargate, Lambda, RDS), Docker |
 | CI/CD           | Harness                       |
 | Auth            | AWS Cognito (JWT/OIDC)        |
 | Testing         | Unit + BDD (SpecFlow, Pytest) |
 | Version Control | GitHub                        |
-| Frontend        | TBD (later phase)             |
+| Frontend        | Dashboard app (iterative)     |
 
 ---
 
@@ -69,6 +76,8 @@ Required env vars (no secrets in repo):
 - `DEMOSKILLS_POSTGRES_DB`
 - `DEMOSKILLS_POSTGRES_USER`
 - `DEMOSKILLS_POSTGRES_PASSWORD`
+- `DEMOSKILLS_JWT_AUTHORITY`
+- `DEMOSKILLS_JWT_CLIENT_ID`
 
 Example hosts entries:
 - `longranch.wookie`
@@ -86,9 +95,12 @@ docker compose up --build -d
 ## Folder Overview
 
 - `/apis` – backend API projects
+- `/dashboard` – UI project and static assets
 - `/docker` – Dockerfiles and build scripts
+- `/lambdas` – serverless experiments and workflows
 - `/harness` – Harness pipelines, YAML configs
-- `/infrastructure` – AWS/K8s setup scripts
+- `/scripts` – local setup and utility scripts
+- `/Shared` – shared auth, security, and cross-service code
 
 ---
 
@@ -102,3 +114,5 @@ docker compose up --build -d
   - Custom prompts for project-specific tasks
 
 ## 📜 License
+
+This project is licensed under the terms in [LICENSE](./LICENSE).

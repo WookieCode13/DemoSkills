@@ -1,6 +1,5 @@
-using EmployeeAPI.Application.Auditing;
-using EmployeeAPI.Domain.Entities;
 using EmployeeAPI.Infrastructure.Data;
+using Shared.Security.Net.Auditing;
 
 namespace EmployeeAPI.Infrastructure.Auditing;
 

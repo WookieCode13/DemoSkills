@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using EmployeeAPI.Mappings;
 using Microsoft.AspNetCore.Authorization;
+using Shared.Security.Net.Auth;
 
 namespace EmployeeAPI.Controllers;
 
@@ -38,7 +39,7 @@ public class EmployeesController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(List<EmployeeResponse>), StatusCodes.Status200OK)]
-    [Authorize]
+    [Authorize(Policy = "EmployeeRead")]
     public async Task<ActionResult<List<EmployeeResponse>>> Employees(CancellationToken ct)
     {
         _logger.LogInformation("GET /employees requested");
@@ -54,6 +55,7 @@ public class EmployeesController : ControllerBase
     [ProducesResponseType(typeof(EmployeeResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [Authorize(Policy = "EmployeeRead")]
     public async Task<ActionResult<EmployeeResponse>> GetById(Guid id, CancellationToken ct)
     {
         _logger.LogInformation("GET /employees/{EmployeeId} requested", id);
@@ -72,6 +74,7 @@ public class EmployeesController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(EmployeeResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [Authorize(Policy = "EmployeeUpdate")]
     public async Task<ActionResult<EmployeeResponse>> Create(
         [FromBody] CreateEmployeeRequest request,
         CancellationToken ct)
@@ -89,6 +92,7 @@ public class EmployeesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [Authorize(Policy = "EmployeeUpdate")]
     public async Task<IActionResult> Patch(
         Guid id,
         [FromBody] PatchEmployeeRequest request,
@@ -108,6 +112,7 @@ public class EmployeesController : ControllerBase
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [Authorize(Policy = "EmployeeDelete")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         _logger.LogInformation("DELETE /employees/{EmployeeId} requested", id);

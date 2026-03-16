@@ -1,6 +1,5 @@
-using TaxCalculatorAPI.Application.Auditing;
-using TaxCalculatorAPI.Domain.Entities;
 using TaxCalculatorAPI.Infrastructure.Data;
+using Shared.Security.Net.Auditing;
 
 namespace TaxCalculatorAPI.Infrastructure.Auditing;
 

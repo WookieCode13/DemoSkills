@@ -1,108 +1,91 @@
 # Tech Stack
 
-## Core Technologies
-### Backend
-- Language: C# (.NET 8)
-  - Framework: ASP.NET Core Web API
-  - Target Framework: net8.0
-  - Key Packages:
-    - Microsoft.AspNetCore.Authentication.JwtBearer
-    - Serilog
-    - Swashbuckle.AspNetCore
+## Core Platform
 
-- Language: Python 3.12
-  - Framework: FastAPI
-  - Key Packages:
-    - fastapi
-    - uvicorn
-    - pytest
+| Area | Current Stack |
+| --- | --- |
+| Backend (.NET) | C#, .NET 8, ASP.NET Core Web API |
+| Backend (Python) | Python 3.12, FastAPI |
+| Frontend | Lightweight dashboard app served through nginx |
+| Database | PostgreSQL |
+| Auth | JWT validation with AWS Cognito-oriented configuration |
+| Containers | Docker, Docker Compose |
+| Deployment | AWS ECS/Fargate, ALB, ECR, RDS |
+| CI/CD | Harness |
+| AI Tooling | ChatGPT and GitHub Copilot |
 
-### Frontend
-- Dashboard: static HTML/CSS/JS served by nginx
+## Backend
 
-### Database
-- PostgreSQL (shared across APIs)
-  - ORM: Entity Framework Core (planned) / SQLAlchemy (planned)
-  - Migration Tools: EF Core Migrations / Alembic (planned)
+### .NET APIs
 
-### Infrastructure
-- Docker
-  - Base Images:
-    - mcr.microsoft.com/dotnet/aspnet:8.0
-    - python:3.12-slim
-    - nginx:1.27-alpine (dashboard)
-  - Multi-stage builds for optimization
+- Runtime: `.NET 8`
+- Framework: `ASP.NET Core Web API`
+- Common packages and tooling:
+  - `Microsoft.AspNetCore.Authentication.JwtBearer`
+  - `Serilog`
+  - `Swashbuckle.AspNetCore`
+  - `FluentMigrator`
+  - `xUnit`
 
-- AWS Services
-  - ALB: Ingress and routing (host-based today)
-  - ECS (Fargate): Container orchestration
-  - ECR: Image registry
-  - RDS: Managed PostgreSQL
-  - Cognito: Authentication and token issuance (planned integration)
-  - Lambda: Serverless functions (optional)
+### Python APIs
 
-## Development Tools
-### IDE and Version Control
-- VS Code
-  - Required Extensions:
-    - C# Dev Kit
-    - Python
-    - Docker
-    - GitLens
-  - Recommended Settings in .vscode/
+- Runtime: `Python 3.12`
+- Framework: `FastAPI`
+- Common packages and tooling:
+  - `fastapi`
+  - `uvicorn`
+  - `pytest`
+  - `SQLAlchemy` in Python service data access paths
 
-- Git + GitHub
-  - Branch Strategy: feature branches (feature/xxx) merged via PR
-  - PR Requirements: Tests + Review
+## Frontend
 
-### Testing
-- Unit Testing
-  - C#: xUnit
-  - Python: pytest
-  - Coverage: 80% minimum (goal)
+- Current UI: simple dashboard app in [`dashboard/`](./dashboard)
+- Delivery: served through nginx in local Docker and mirrored in hosted routing flows
+- Role in the project: lightweight service visibility and integration surface, not a polished product frontend
 
-- BDD Testing
-  - C#: SpecFlow (planned)
-  - Python: pytest-bdd (planned)
-  - Gherkin specs in /tests/features/ (planned)
+## Data and Migrations
 
-### CI/CD (Harness)
-- Pipeline Types:
-  - Build + Test
-  - Deploy to AWS
-  - Infrastructure as Code
-  - Automated Teardown
+- Database: shared PostgreSQL
+- .NET migrations: `FluentMigrator`
+- Python persistence patterns: SQLAlchemy-based service code
+- Shared auth data model: roles, permissions, user access mappings under the `_auth` schema
 
-## AI Integration
-### GitHub Copilot
-- Use Cases:
-  - Code completion
-  - Unit test generation
-  - Documentation assistance
-  - API endpoint suggestions
+## Security
 
-### ChatGPT (GPT-5)
-- Use Cases:
-  - Architecture planning
-  - Code review assistance
-  - Documentation generation
-  - Problem-solving
+- Authentication: bearer JWT validation
+- Identity provider direction: AWS Cognito
+- Authorization direction: shared role/permission model with API policy checks
+- Shared security modules:
+  - `.NET`: [`Shared/Security/dotnet/Shared.Security.Net`](./Shared/Security/dotnet/Shared.Security.Net)
+  - `Python`: [`Shared/Security/py/shared_security_py`](./Shared/Security/py/shared_security_py)
 
-## Dependencies Graph
-```mermaid
-graph TD
-    A[APIs] --> B[PostgreSQL]
-    A --> C[AWS Services]
-    D[Harness CI/CD] --> E[Docker]
-    E --> C
-    F[Tests] --> A
-```
+## Infrastructure
 
-## Configuration Management
-- AWS credentials via AWS CLI/profile or Harness secrets
-- Database connection strings in secrets
-- Auth config via Cognito user pool/app client settings and JWT audience/issuer validation in APIs
-- Environment-specific settings:
-  - `.NET`: `appsettings.Development.json`
-  - Python: `.env` (+ `.env.example`)
-- CI/CD variables in Harness
+- Docker images:
+  - `mcr.microsoft.com/dotnet/aspnet:8.0`
+  - `python:3.12-slim`
+  - `nginx:1.27-alpine`
+- AWS services in active use or active practice flow:
+  - `ECS/Fargate`
+  - `ALB`
+  - `ECR`
+  - `RDS PostgreSQL`
+  - `Cognito`
+- Additional area of experimentation:
+  - `Lambda`
+
+## Development Workflow
+
+- Editor: VS Code
+- Version control: Git + GitHub
+- Branching: feature branches merged back to main
+- Local orchestration: `docker compose`
+- API testing: Swagger, `.http` request files, and unit tests
+- Documentation style: lightweight Markdown docs with older notes archived under [`docs/archive/`](./docs/archive/README.md)
+
+## Configuration
+
+- Local container setup uses environment variables for database and JWT settings.
+- .NET services use `appsettings.*` plus environment overrides.
+- Python services use environment-based configuration.
+- Deployment secrets are expected to live outside the repo.
