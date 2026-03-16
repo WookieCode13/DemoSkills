@@ -24,8 +24,9 @@ pay-create              | Pay Create               | pay_api       | payroll    
 pay-process             | Pay Process              | pay_api       | payroll       | 0 | 1 | 1 | 0 | 1         | Process payroll data
 pay-close               | Pay Close                | pay_api       | payroll       | 0 | 1 | 1 | 0 | 1         | Close payroll period
 pay-delete              | Pay Delete               | pay_api       | payroll       | 0 | 0 | 0 | 1 | 1         | Delete payroll data
-employee-profile-read   | Employee Profile Read    | employee_api  | profile       | 0 | 1 | 0 | 0 | 1         | Read employee profile data
-employee-profile-update | Employee Profile Update  | employee_api  | profile       | 0 | 1 | 1 | 0 | 1         | Update employee profile data
+employee-read           | Employee Read            | employee_api  | employee      | 0 | 1 | 0 | 0 | 1         | Read employee data
+employee-create         | Employee Create          | employee_api  | employee      | 1 | 0 | 0 | 0 | 1         | Create employee data
+employee-update         | Employee Update          | employee_api  | employee      | 0 | 1 | 1 | 0 | 1         | Update employee data
 employee-delete         | Employee Delete          | employee_api  | employee      | 0 | 0 | 0 | 1 | 1         | Delete employee record
 tax-read                | Tax Read                 | tax_api       | tax           | 0 | 1 | 0 | 0 | 1         | Read tax calculation data
 report-read             | Report Read              | report_api    | report        | 0 | 1 | 0 | 0 | 1         | Read report data
@@ -43,20 +44,28 @@ super_admin             | pay-create
 super_admin             | pay-process
 super_admin             | pay-close
 super_admin             | pay-delete
-super_admin             | employee-profile-read
-super_admin             | employee-profile-update
+super_admin             | employee-read
+super_admin             | employee-create
+super_admin             | employee-update
 super_admin             | employee-delete
 super_admin             | tax-read
 super_admin             | report-read
 customer_service_create | company-create
 customer_service_create | company-read
-customer_service_create | employee-profile-read
+customer_service_create | employee-read
+customer_service_create             | employee-create
+customer_service_create             | employee-update
+customer_service_create             | employee-delete
 customer_service        | company-update
-customer_service        | employee-profile-read
+customer_service        | employee-read
 payroll_admin           | pay-view
 payroll_admin           | pay-create
 payroll_admin           | pay-process
 payroll_admin           | pay-close
 payroll_admin           | report-read
-employee_self_service   | employee-profile-read
-employee_self_service   | employee-profile-update
+payroll_admin             | employee-create
+payroll_admin             | employee-update
+payroll_admin             | employee-delete
+payroll_admin             | employee-read
+employee_self_service   | employee-read
+employee_self_service   | employee-update

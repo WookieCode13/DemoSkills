@@ -1,12 +1,12 @@
 # Harness Config
 
-This folder holds a minimal pipeline skeleton (`api-ci.yaml`).
+This folder contains the current Harness pipeline YAMLs and ALB rule helper files used for DemoSkills deployment experiments and automation.
 
-Before running in Harness, replace placeholders:
-- `REPLACE_ME_ORG`, `REPLACE_ME_PROJECT`
-- `REPLACE_ME_GIT_CONNECTOR`
-- `REPLACE_ME_AWS_CONNECTOR`
+Current root contents are intended to be the more relevant or active pipeline definitions, including:
 
-Then run the pipeline in Harness to build/test and push to ECR.
+- API build/deploy pipelines
+- ECS scale/deploy helpers
+- ALB rule apply/inspect helpers
+- sample ALB rule JSON
 
-Tip: if you don't have ECR yet, create it in the AWS console (ECR > Create repository) or point the pipeline to Docker Hub for a first pass.
+Older trial pipelines and scratch YAML files have been moved to [`archive/`](./archive/README.md).

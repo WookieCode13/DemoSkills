@@ -11,8 +11,10 @@ using Serilog.Formatting.Compact;
 using Microsoft.AspNetCore.HttpOverrides;
 using Shared.Security.Net.Auditing;
 using Shared.Security.Net.Auth;
+using Shared.Security.Net.Constants;
 using Shared.Security.Net.Middleware;
 using EmployeeAPI.Infrastructure.Auth;
+using Microsoft.AspNetCore.Authorization;
 
 // Bootstrap Serilog early
 Log.Logger = new LoggerConfiguration()
@@ -109,9 +111,13 @@ try
     builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
     builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
     builder.Services.AddScoped<CompanyTenantMiddleware>();
+    builder.Services.AddHttpContextAccessor();
+
+    // Shared auth services for repository-backed permission checks.
     builder.Services.AddScoped<IUserAuthRepository, UserAuthRepository>();
     builder.Services.AddScoped<IUserAuthContextProvider, UserAuthContextProvider>();
-    builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
+    builder.Services.AddScoped<IAppAuthorizationService, AppAuthorizationService>();
+    builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
     builder.Services.Configure<MigrationOptions>(builder.Configuration.GetSection("Migrations"));
     builder.Services
@@ -124,7 +130,16 @@ try
 
     builder.Services.AddHostedService<MigrationHostedService>();
     builder.Services.AddDemoSkillsJwtAuth(builder.Configuration);
-    builder.Services.AddHttpContextAccessor();
+
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy("EmployeeRead", policy =>
+            policy.Requirements.Add(new PermissionRequirement(Permissions.EmployeeRead)));
+        options.AddPolicy("EmployeeUpdate", policy =>
+            policy.Requirements.Add(new PermissionRequirement(Permissions.EmployeeUpdate)));
+        options.AddPolicy("EmployeeDelete", policy =>
+            policy.Requirements.Add(new PermissionRequirement(Permissions.EmployeeDelete)));
+    });
 
     // Optional: serve the app under a sub-path (e.g., "/employee")
     var pathBase = builder.Configuration["PathBase"];
@@ -189,19 +204,6 @@ try
     // Note: No root ("/") or top-level "/health" endpoints
 
     app.MapControllers();
-
-
-    app.MapGet("/auth/test", async (IAuthorizationService auth) =>
-    {
-        var allowed = await auth.HasPermissionAsync("employee-profile-read");
-
-        return Results.Ok(new
-        {
-            permission = "employee-profile-read",
-            allowed
-        });
-    });
-
 
     Log.Information("Starting EmployeeAPI");
     app.Run();

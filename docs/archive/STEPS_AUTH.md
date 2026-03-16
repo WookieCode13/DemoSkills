@@ -10,6 +10,40 @@ Notes:
   - JWT is for authentication/identity.
   - DB is for tenant authorization/membership.
 
+  Auth
+  ├─ IAuthorizationService
+  ├─ AuthorizationService
+  ├─ IUserAuthContextProvider
+  ├─ IUserAuthRepository
+  ├─ UserAuthContext
+  └─ UserPermission
+
+  Request
+    ↓
+  JWT Auth   > get token from cognito
+    ↓
+  IUserAuthContextProvider > GetUserAuthContextAsync from http
+    ↓
+  IUserAuthRepository (DB lookup) > GetByCognitoSubAsync | permissions
+    ↓
+  UserAuthContext  < returned from Repos above
+    ↓
+  AuthorizationService  >  HasPermissionAsync
+    ↓
+  Permission decision
+
+Request
+  ↓
+[Authorize Policy]
+  ↓
+PermissionAuthorizationHandler
+  ↓
+IPermissionService
+  ↓
+UserAuthContextProvider
+  ↓
+UserAuthRepository
+
 ## Shared Security Modules (Current Repo Layout)
 
 Created shared folders:
@@ -789,49 +823,75 @@ Do not build yet:
 
 Initial version should stay simple, predictable, and easy to debug.
 
-## Monday TODOs
+## Friday Next Steps
 
-- Finalize auth naming set for tables, columns, and role codes.
-- Decide exact V1 constraints and keys:
-  - UUID vs int keys
-  - unique keys for `cognito_sub`, email, and company access rows
-- Draft the first auth migrations for:
-  - `_auth.app_user`
-  - `_auth.role`
-  - `_auth.permission`
-  - `_auth.user_company_access`
-  - `_auth.role_permission`
-- Define the first permission rows:
-  - `company_api`
-  - `employee_api`
-  - `pay_api`
-  - `tax_api`
-  - `report_api`
-- Start role enforcement design in shared auth:
-  - `.NET` policies/helpers
-  - Python dependencies/helpers
-- Revisit CompanyAPI Python test runner/launcher issue if needed.
+- Remove the temporary auth test endpoint once endpoint-level permission checks are in normal routes.
+- Move endpoint authorization from proof-of-concept calls into real API endpoints.
+- Keep `/health` public unless a specific API needs it secured.
 
+### Shared `.NET` auth
 
+- Keep `IUserAuthRepository`, `IUserAuthContextProvider`, `UserAuthContext`, and `AuthorizationService` as the common path.
+- Add permission enforcement helpers/patterns that are easy to reuse in controllers and services.
+- Decide whether endpoint checks should live:
+  - directly in controllers first, or
+  - behind shared policies/attributes next.
+- Keep the `sub` / `ClaimTypes.NameIdentifier` fallback until JWT claim mapping is standardized.
 
-Auth
- ├─ IAuthorizationService
- ├─ AuthorizationService
- ├─ IUserAuthContextProvider
- ├─ IUserAuthRepository
- ├─ UserAuthContext
- └─ UserPermission
+### Shared Python auth
 
-Request
-   ↓
-JWT Auth
-   ↓
-IUserAuthContextProvider
-   ↓
-IUserAuthRepository (DB lookup)
-   ↓
-UserAuthContext
-   ↓
-AuthorizationService
-   ↓
-Permission decision
+- Finish `Shared/Security/py/shared_security_py` so Python APIs use the same concepts as `.NET`:
+  - token validation
+  - current principal resolution
+  - auth context loading by Cognito `sub`
+  - permission evaluation
+- Match naming across stacks:
+  - `UserAuthContext`
+  - repository/provider concepts
+  - permission codes
+- Do not invent a separate Python auth model; mirror the `.NET` flow.
+
+### API rollout
+
+- EmployeeAPI:
+  - replace temp test usage with real endpoint permission checks
+  - keep repository-backed auth lookup as the source of truth
+- CompanyAPI:
+  - move onto shared Python auth context + permission checks
+- ReportAPI:
+  - move onto shared Python auth context + permission checks
+- PayAPI:
+  - add repository-backed authorization checks beyond JWT validation
+- TaxCalculatorAPI:
+  - add repository-backed authorization checks beyond JWT validation
+
+### Permission rollout
+
+- Start with read permissions on protected GET endpoints.
+- Then add create/update/delete checks.
+- Keep permission names stable across APIs, for example:
+  - `employee-profile-read`
+  - `employee-profile-update`
+  - `company-read`
+  - `company-update`
+  - `pay-read`
+  - `pay-update`
+  - `report-read`
+  - `tax-run`
+
+### Frontend after backend auth is stable
+
+- Build login through Cognito Hosted UI or SPA auth flow.
+- Store and send access token to APIs.
+- Use base role and permission results to shape navigation, but keep backend enforcement authoritative.
+- Add company selection UX once tenant/company authorization is working cleanly.
+
+### Immediate implementation order
+
+- 1. Wire shared auth checks into real EmployeeAPI endpoints.
+- 2. Finish shared Python auth package shape.
+- 3. Move CompanyAPI and ReportAPI to shared Python auth.
+- 4. Add repository-backed authorization checks to PayAPI and TaxCalculatorAPI.
+- 5. Remove temporary auth test endpoint.
+- 6. Start frontend login flow only after API auth behavior is stable.
+

@@ -1,10 +1,10 @@
 namespace Shared.Security.Net.Auth;
 
-public class AuthorizationService : IAuthorizationService
+public class AppAuthorizationService : IAppAuthorizationService
 {
     private readonly IUserAuthContextProvider _userAuthContextProvider;
 
-    public AuthorizationService(IUserAuthContextProvider userAuthContextProvider)
+    public AppAuthorizationService(IUserAuthContextProvider userAuthContextProvider)
     {
         _userAuthContextProvider = userAuthContextProvider;
     }
