@@ -1,0 +1,17 @@
+{
+  "venvPath": ".",
+  "executionEnvironments": [
+    {
+      "root": "apis/CompanyAPI",
+      "extraPaths": [
+        "Shared/Security/py"
+      ]
+    },
+    {
+      "root": "apis/ReportAPI",
+      "extraPaths": [
+        "Shared/Security/py"
+      ]
+    }
+  ]
+}

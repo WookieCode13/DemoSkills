@@ -2,9 +2,14 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api.reports import router as reports_router
-from .schemas.health import HealthResponse
-from .core.logger import configure_logging
+if __package__ in (None, ""):
+    from api.reports import router as reports_router
+    from core.logger import configure_logging
+    from schemas.health import HealthResponse
+else:
+    from .api.reports import router as reports_router
+    from .core.logger import configure_logging
+    from .schemas.health import HealthResponse
 
 _build_branch = os.getenv("BUILD_BRANCH", "local")
 _root_path = os.getenv("ROOT_PATH", "")
