@@ -30,6 +30,8 @@ employee-update         | Employee Update          | employee_api  | employee   
 employee-delete         | Employee Delete          | employee_api  | employee      | 0 | 0 | 0 | 1 | 1         | Delete employee record
 tax-read                | Tax Read                 | tax_api       | tax           | 0 | 1 | 0 | 0 | 1         | Read tax calculation data
 report-read             | Report Read              | report_api    | report        | 0 | 1 | 0 | 0 | 1         | Read report data
+employee-self-read      | Employee Self Read       | employee_api  | employee      | 0 | 1 | 0 | 0 | 1         | Read my employee data
+employee-self-update    | Employee Self Update     | employee_api  | employee      | 0 | 1 | 1 | 0 | 1         | Update my employee data
 
 
 ROLE_PERMISSIONS
@@ -53,19 +55,23 @@ super_admin             | report-read
 customer_service_create | company-create
 customer_service_create | company-read
 customer_service_create | employee-read
-customer_service_create             | employee-create
-customer_service_create             | employee-update
-customer_service_create             | employee-delete
+customer_service_create | employee-create
+customer_service_create | employee-update
+customer_service_create | employee-delete
+customer_service_create | pay-view
+customer_service_create | report-read
+customer_service        | company-read
 customer_service        | company-update
 customer_service        | employee-read
+customer_service        | employee-update
 payroll_admin           | pay-view
 payroll_admin           | pay-create
 payroll_admin           | pay-process
 payroll_admin           | pay-close
 payroll_admin           | report-read
-payroll_admin             | employee-create
-payroll_admin             | employee-update
-payroll_admin             | employee-delete
-payroll_admin             | employee-read
-employee_self_service   | employee-read
-employee_self_service   | employee-update
+payroll_admin           | employee-create
+payroll_admin           | employee-update
+payroll_admin           | employee-delete
+payroll_admin           | employee-read
+employee_self_service   | employee-self-read
+employee_self_service   | employee-self-update
