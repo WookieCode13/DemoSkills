@@ -13,7 +13,6 @@ public sealed class V2026031701_ReseedSharedAuthRoleMatrix : Migration
         Execute.Sql(@"
             DELETE FROM _auth.role_permission;
             DELETE FROM _auth.permission;
-            DELETE FROM _auth.role;
         ");
 
         Execute.Sql(@"
@@ -23,7 +22,13 @@ public sealed class V2026031701_ReseedSharedAuthRoleMatrix : Migration
                 ('customer_service_create', 'Customer Service Create', 'Global create support role', true),
                 ('customer_service', 'Customer Service', 'Assigned-company support role', true),
                 ('payroll_admin', 'Payroll Admin', 'Payroll management role', true),
-                ('employee_self_service', 'Employee Self Service', 'Employee self-service role', true);
+                ('employee_self_service', 'Employee Self Service', 'Employee self-service role', true)
+            ON CONFLICT (role_code) DO UPDATE
+            SET
+                role_name = EXCLUDED.role_name,
+                description = EXCLUDED.description,
+                is_active = EXCLUDED.is_active,
+                updated_utc = timezone('utc', now());
         ");
 
         Execute.Sql(@"
@@ -110,7 +115,6 @@ public sealed class V2026031701_ReseedSharedAuthRoleMatrix : Migration
         Execute.Sql(@"
             DELETE FROM _auth.role_permission;
             DELETE FROM _auth.permission;
-            DELETE FROM _auth.role;
         ");
 
         Execute.Sql(@"
@@ -120,7 +124,13 @@ public sealed class V2026031701_ReseedSharedAuthRoleMatrix : Migration
                 ('customer_service_create', 'Customer Service Create', 'Global create support role', true),
                 ('customer_service', 'Customer Service', 'Assigned-company support role', true),
                 ('payroll_admin', 'Payroll Admin', 'Payroll management role', true),
-                ('employee_self_service', 'Employee Self Service', 'Employee self-service role', true);
+                ('employee_self_service', 'Employee Self Service', 'Employee self-service role', true)
+            ON CONFLICT (role_code) DO UPDATE
+            SET
+                role_name = EXCLUDED.role_name,
+                description = EXCLUDED.description,
+                is_active = EXCLUDED.is_active,
+                updated_utc = timezone('utc', now());
         ");
 
         Execute.Sql(@"

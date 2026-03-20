@@ -19,6 +19,19 @@ public sealed class V2026031702_MoveEmployeeToCompanySchemaAndCreatePayReportTab
         // pay_check is the printable/finalized output snapshot for checks and check-style reports.
         // public.report is shared report metadata; {schema}.report_data is tenant/company-scoped output.
         // public.tax is shared tax metadata/rates.
+        // Tax code pattern idea:
+        //   TAX-<scope>-<jurisdiction>-<type>-<subtype>-<local>-Y<year>
+        // Examples:
+        //   TAX-F-US-INCOME-NA-NA-Y2026
+        //   TAX-S-MD-INCOME-NA-NA-Y2026
+        //   TAX-O-PA-LST-PSD1234-NA-Y2026
+        // Keep year as its own DB column for filtering/search even if the generated code also ends with Y####.
+        // Report code pattern idea:
+        //   RP-<ALPHA_CODE>-V<version>
+        // Examples:
+        //   RP-PAYCK-V1
+        //   RP-PAYRL-V1
+        //   RP-TAXSM-V1
         // Follow-up ideas: tax, timesheet, department, job, and employee pay-profile tables.
 
         Execute.Sql($@"
