@@ -17,7 +17,7 @@ public class AppDbContext : DbContext
         base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<Employee>(entity =>
         {
-            entity.ToTable("employee", "demoskills");
+            entity.ToTable("employee");
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.FirstName).HasColumnName("first_name");
             entity.Property(e => e.LastName).HasColumnName("last_name");

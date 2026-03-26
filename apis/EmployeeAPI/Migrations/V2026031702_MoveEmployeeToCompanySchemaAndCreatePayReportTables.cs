@@ -3,21 +3,20 @@ using Serilog;
 
 namespace EmployeeAPI.Migrations;
 
-[Migration(2026031702, "Move employee table to demoskills schema and create pay/report tables")]
+[Migration(2026031702, "Create public pay, tax, and report tables")]
 public sealed class V2026031702_MoveEmployeeToCompanySchemaAndCreatePayReportTables : Migration
 {
-    private const string CompanySchema = "demoskills";
 
     public override void Up()
     {
-        Log.Information("Moving employee table into {Schema} schema and creating pay/report tables", CompanySchema);
+        Log.Information("Creating public pay, tax, and report tables");
 
         // Limiting FK usage between tables keeps the demo closer to separate-service ownership.
         // This first cut is intentionally simple so UI/backend work can move forward quickly.
         // sandbox_pay_entry is the mutable work area; pay_entry is append-only final payroll data.
         // Corrections in pay_entry should be negative/reversing inserts rather than updates.
         // pay_check is the printable/finalized output snapshot for checks and check-style reports.
-        // public.report is shared report metadata; {schema}.report_data is tenant/company-scoped output.
+        // public.report is shared report metadata; public.report_data stores report output for now.
         // public.tax is shared tax metadata/rates.
         // Tax code pattern idea:
         //   TAX-<scope>-<jurisdiction>-<type>-<subtype>-<local>-Y<year>
@@ -36,22 +35,6 @@ public sealed class V2026031702_MoveEmployeeToCompanySchemaAndCreatePayReportTab
 
         Execute.Sql($@"
             CREATE EXTENSION IF NOT EXISTS ""uuid-ossp"";
-            CREATE SCHEMA IF NOT EXISTS {CompanySchema};
-
-            DO $$
-            BEGIN
-                IF EXISTS (
-                    SELECT 1
-                    FROM information_schema.tables
-                    WHERE table_schema = 'public' AND table_name = 'employee'
-                ) AND NOT EXISTS (
-                    SELECT 1
-                    FROM information_schema.tables
-                    WHERE table_schema = '{CompanySchema}' AND table_name = 'employee'
-                ) THEN
-                    ALTER TABLE public.employee SET SCHEMA {CompanySchema};
-                END IF;
-            END $$;
 
             CREATE TABLE IF NOT EXISTS public.tax (
                 id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -71,7 +54,7 @@ public sealed class V2026031702_MoveEmployeeToCompanySchemaAndCreatePayReportTab
                 updated_utc timestamp with time zone NOT NULL DEFAULT now()
             );
 
-            CREATE TABLE IF NOT EXISTS {CompanySchema}.pay_entry (
+            CREATE TABLE IF NOT EXISTS public.pay_entry (
                 id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
                 pay_code varchar(50) NOT NULL,
                 credit numeric(10, 2) NOT NULL,
@@ -82,7 +65,7 @@ public sealed class V2026031702_MoveEmployeeToCompanySchemaAndCreatePayReportTab
                 updated_utc timestamp with time zone NOT NULL DEFAULT now()
             );
 
-            CREATE TABLE IF NOT EXISTS {CompanySchema}.sandbox_pay_entry (
+            CREATE TABLE IF NOT EXISTS public.sandbox_pay_entry (
                 id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
                 pay_code varchar(50) NOT NULL,
                 credit numeric(10, 2) NOT NULL,
@@ -93,7 +76,7 @@ public sealed class V2026031702_MoveEmployeeToCompanySchemaAndCreatePayReportTab
                 updated_utc timestamp with time zone NOT NULL DEFAULT now()
             );
 
-            CREATE TABLE IF NOT EXISTS {CompanySchema}.pay_check (
+            CREATE TABLE IF NOT EXISTS public.pay_check (
                 id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
                 pay_id varchar(50) NOT NULL,
                 employee_id uuid NOT NULL,
@@ -109,7 +92,7 @@ public sealed class V2026031702_MoveEmployeeToCompanySchemaAndCreatePayReportTab
                 updated_utc timestamp with time zone NOT NULL DEFAULT now()
             );
 
-            CREATE TABLE IF NOT EXISTS {CompanySchema}.report_data (
+            CREATE TABLE IF NOT EXISTS public.report_data (
                 id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
                 report_code varchar(100) NOT NULL,
                 report_data jsonb NOT NULL DEFAULT '{{}}'::jsonb,
@@ -121,30 +104,15 @@ public sealed class V2026031702_MoveEmployeeToCompanySchemaAndCreatePayReportTab
 
     public override void Down()
     {
-        Log.Information("Moving employee table back to public schema and removing {Schema} payroll/report tables", CompanySchema);
+        Log.Information("Removing public pay, tax, and report tables");
 
         Execute.Sql($@"
-            DROP TABLE IF EXISTS {CompanySchema}.report_data;
-            DROP TABLE IF EXISTS {CompanySchema}.pay_check;
-            DROP TABLE IF EXISTS {CompanySchema}.pay_entry;
-            DROP TABLE IF EXISTS {CompanySchema}.sandbox_pay_entry;
+            DROP TABLE IF EXISTS public.report_data;
+            DROP TABLE IF EXISTS public.pay_check;
+            DROP TABLE IF EXISTS public.pay_entry;
+            DROP TABLE IF EXISTS public.sandbox_pay_entry;
             DROP TABLE IF EXISTS public.report;
             DROP TABLE IF EXISTS public.tax;
-
-            DO $$
-            BEGIN
-                IF EXISTS (
-                    SELECT 1
-                    FROM information_schema.tables
-                    WHERE table_schema = '{CompanySchema}' AND table_name = 'employee'
-                ) AND NOT EXISTS (
-                    SELECT 1
-                    FROM information_schema.tables
-                    WHERE table_schema = 'public' AND table_name = 'employee'
-                ) THEN
-                    ALTER TABLE {CompanySchema}.employee SET SCHEMA public;
-                END IF;
-            END $$;
         ");
     }
 }
