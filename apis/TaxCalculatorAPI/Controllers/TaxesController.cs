@@ -29,7 +29,7 @@ public class TaxesController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize]
+    [Authorize(Policy = "TaxRead")]
     public IActionResult List()
     {
         return Ok(Array.Empty<object>());

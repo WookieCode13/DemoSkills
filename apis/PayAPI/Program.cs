@@ -1,8 +1,13 @@
 using System;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using PayAPI.Infrastructure.Auth;
+using PayAPI.Infrastructure.Data;
 using Serilog;
 using Serilog.Formatting.Compact;
 using Shared.Security.Net.Auth;
+using Shared.Security.Net.Constants;
 
 var buildBranch = Environment.GetEnvironmentVariable("BUILD_BRANCH") ?? "local";
 
@@ -80,7 +85,19 @@ try
             }
         });
     });
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddScoped<IUserAuthRepository, UserAuthRepository>();
+    builder.Services.AddScoped<IUserAuthContextProvider, UserAuthContextProvider>();
+    builder.Services.AddScoped<IAppAuthorizationService, AppAuthorizationService>();
+    builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
     builder.Services.AddDemoSkillsJwtAuth(builder.Configuration);
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy("PayView", policy =>
+            policy.Requirements.Add(new PermissionRequirement(Permissions.PayView)));
+    });
 
     var app = builder.Build();
 

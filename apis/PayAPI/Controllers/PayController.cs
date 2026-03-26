@@ -29,7 +29,7 @@ public class PayController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize]
+    [Authorize(Policy = "PayView")]
     public IActionResult List()
     {
         return Ok(Array.Empty<object>());
