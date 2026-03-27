@@ -126,7 +126,7 @@ pipeline:
                   identifier: Build_Test_CS
                   when:
                     stageStatus: Success
-                    condition: ((<+pipeline.variables.SERVICE_NAME> == "EmployeeAPI") || (<+pipeline.variables.SERVICE_NAME> == "PayAPI") || (<+pipeline.variables.SERVICE_NAME> == "TaxCalculatorAPI")) && (<+pipeline.variables.PERFORM_TESTS> == "Yes")
+                    condition: ((<+pipeline.variables.SERVICE_NAME> == "EmployeeAPI") || (<+pipeline.variables.SERVICE_NAME> == "PayAPI") || (<+pipeline.variables.SERVICE_NAME> == "TaxCalculatorAPI") || (<+pipeline.variables.SERVICE_NAME> == "ReportAPI")) && (<+pipeline.variables.PERFORM_TESTS> == "Yes")
                   spec:
                     shell: Sh
                     image: mcr.microsoft.com/dotnet/sdk:8.0
@@ -145,7 +145,7 @@ pipeline:
                   identifier: Build_Test_PY
                   when:
                     stageStatus: Success
-                    condition: ((<+pipeline.variables.SERVICE_NAME> == "CompanyAPI") || (<+pipeline.variables.SERVICE_NAME> == "ReportAPI")) && (<+pipeline.variables.PERFORM_TESTS> == "Yes")
+                    condition: (<+pipeline.variables.SERVICE_NAME> == "CompanyAPI") && (<+pipeline.variables.PERFORM_TESTS> == "Yes")
                   spec:
                     shell: Sh
                     image: python:3.12-slim
@@ -370,7 +370,7 @@ pipeline:
                         IMAGE_TAG="${SERVICE_NAME}-${BUILD_REF}.b<+pipeline.sequenceId>"
 
                         if [ "$PERFORM_TESTS" = "Yes" ]; then
-                          if [ "$SERVICE_NAME" = "CompanyAPI" ] || [ "$SERVICE_NAME" = "ReportAPI" ]; then
+                          if [ "$SERVICE_NAME" = "CompanyAPI" ]; then
                             docker run --rm -v "$PWD":/work -w /work/apis/$SERVICE_NAME python:3.12-slim sh -c "
                               set -e
                               export PYTHONPATH=/work/apis/$SERVICE_NAME

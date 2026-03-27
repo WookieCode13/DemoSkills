@@ -105,7 +105,7 @@ pipeline:
                         IMAGE_TAG="${SERVICE_NAME}-${BUILD_REF}.b<+pipeline.sequenceId>"
 
                         if [ "$PERFORM_TESTS" = "Yes" ]; then
-                          if [ "$SERVICE_NAME" = "CompanyAPI" ] || [ "$SERVICE_NAME" = "ReportAPI" ]; then
+                          if [ "$SERVICE_NAME" = "CompanyAPI" ]; then
                             docker run --rm -v "$PWD":/work -w /work/apis/$SERVICE_NAME python:3.12-slim sh -c "
                               set -e
                               export PYTHONPATH=/work/apis/$SERVICE_NAME
