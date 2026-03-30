@@ -4,13 +4,7 @@
       "priority": 50,
       "hosts": ["company.longranch.com"],
       "paths": ["/swagger*"],
-      "targetPath": "/docs"
-    },
-    {
-      "priority": 51,
-      "hosts": ["report.longranch.com"],
-      "paths": ["/swagger*"],
-      "targetPath": "/docs"
+      "targetPath": "/swagger"
     }
   ],
   "forwards": [
@@ -24,7 +18,7 @@
       "priority": 101,
       "hosts": ["company.longranch.com"],
       "paths": ["/*"],
-      "targetGroupName": "demoskills-comp-tg-8081"
+      "targetGroupName": "demoskills-tg-8080"
     },
     {
       "priority": 102,
@@ -36,7 +30,7 @@
       "priority": 103,
       "hosts": ["tax.longranch.com"],
       "paths": ["/*"],
-      "targetGroupName": "demoskills-tax-tg-8083"
+      "targetGroupName": "demoskills-pay-tg-8082"
     },
     {
       "priority": 104,

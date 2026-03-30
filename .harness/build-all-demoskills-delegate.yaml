@@ -77,7 +77,7 @@ pipeline:
                     command: |-
                       set -euo pipefail
 
-                      SERVICES="EmployeeAPI CompanyAPI TaxCalculatorAPI PayAPI ReportAPI Dashboard"
+                      SERVICES="EmployeeAPI PayAPI ReportAPI Dashboard"
                       BRANCH="<+codebase.branch>"
                       GIT_TAG="<+codebase.gitTag>"
                       SPEC_TAG="<+pipeline.properties.ci.codebase.build.spec.tag>"
@@ -105,14 +105,7 @@ pipeline:
                         IMAGE_TAG="${SERVICE_NAME}-${BUILD_REF}.b<+pipeline.sequenceId>"
 
                         if [ "$PERFORM_TESTS" = "Yes" ]; then
-                          if [ "$SERVICE_NAME" = "CompanyAPI" ]; then
-                            docker run --rm -v "$PWD":/work -w /work/apis/$SERVICE_NAME python:3.12-slim sh -c "
-                              set -e
-                              export PYTHONPATH=/work/apis/$SERVICE_NAME
-                              python -m pip install --no-cache-dir -r requirements.txt
-                              python -m pytest -vv
-                            "
-                          elif [ "$SERVICE_NAME" != "Dashboard" ]; then
+                          if [ "$SERVICE_NAME" != "Dashboard" ]; then
                             docker run --rm -v "$PWD":/work -w /work/apis/$SERVICE_NAME mcr.microsoft.com/dotnet/sdk:8.0 sh -c "
                               set -e
                               dotnet restore
@@ -124,7 +117,7 @@ pipeline:
 
                         if [ "$SERVICE_NAME" = "Dashboard" ]; then
                           docker build -t demo-image:$IMAGE_TAG -f dashboard/Dockerfile dashboard
-                        elif [ "$SERVICE_NAME" = "EmployeeAPI" ] || [ "$SERVICE_NAME" = "PayAPI" ] || [ "$SERVICE_NAME" = "TaxCalculatorAPI" ] || [ "$SERVICE_NAME" = "CompanyAPI" ] || [ "$SERVICE_NAME" = "ReportAPI" ]; then
+                        elif [ "$SERVICE_NAME" = "EmployeeAPI" ] || [ "$SERVICE_NAME" = "PayAPI" ] || [ "$SERVICE_NAME" = "ReportAPI" ]; then
                           # APIs that reference shared code should build from repo root context.
                           docker build -t demo-image:$IMAGE_TAG -f apis/$SERVICE_NAME/Dockerfile .
                         else

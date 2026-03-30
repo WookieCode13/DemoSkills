@@ -18,7 +18,7 @@ GET http://pay.longranch.com/swagger
 GET http://pay.longranch.com/swagger/v1/swagger.json
 
 
-### TaxCalculator
+### Tax via PayAPI
 GET http://tax.longranch.com/api/v1/taxes/health
 ###
 GET http://tax.longranch.com/swagger
@@ -27,20 +27,20 @@ GET http://tax.longranch.com/swagger/v1/swagger.json
 
 
 
-### Company (python)
+### Company via EmployeeAPI
 GET http://company.longranch.com/api/v1/companies/health
 ###
 GET http://company.longranch.com/api/v1/companies
 ###
-GET http://company.longranch.com/docs
+GET http://company.longranch.com/swagger
 ###
-GET http://company.longranch.com/openapi.json
+GET http://company.longranch.com/swagger/v1/swagger.json
 
 
 
-### Report (python)
+### Report
 GET http://report.longranch.com/api/v1/reports/health
 ###
-GET http://report.longranch.com/docs
+GET http://report.longranch.com/swagger
 ###
-GET http://report.longranch.com/openapi.json
+GET http://report.longranch.com/swagger/v1/swagger.json
