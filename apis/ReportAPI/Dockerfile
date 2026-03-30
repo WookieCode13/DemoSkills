@@ -1,20 +1,18 @@
-# ReportAPI (Python/FastAPI)
+# ReportAPI (.NET 8 ASP.NET API)
 
-FROM python:3.12-slim
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app:/app/shared
+COPY apis/ReportAPI/ReportAPI.csproj apis/ReportAPI/
+COPY Shared/Security/dotnet/Shared.Security.Net/Shared.Security.Net.csproj Shared/Security/dotnet/Shared.Security.Net/
+RUN dotnet restore "apis/ReportAPI/ReportAPI.csproj"
 
+COPY . .
+RUN dotnet publish "apis/ReportAPI/ReportAPI.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
-
-COPY apis/ReportAPI/requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r ./requirements.txt
-
-COPY apis/ReportAPI/src ./src
-COPY Shared/Security/py/shared_security_py ./shared/shared_security_py
-
 EXPOSE 8084
-ENV PORT=8084
-
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8084"]
+ENV ASPNETCORE_URLS=http://+:8084
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "ReportAPI.dll"]

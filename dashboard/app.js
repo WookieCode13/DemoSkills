@@ -7,24 +7,14 @@ const baseDomain =
 
 const services = [
   {
-    name: "Employee",
+    name: "Admin (was employee)",
     healthUrl: `${protocol}//employee.${baseDomain}/api/v1/employees/health`,
     swaggerUrl: `${protocol}//employee.${baseDomain}/swagger`,
-  },
-  {
-    name: "Company",
-    healthUrl: `${protocol}//company.${baseDomain}/api/v1/companies/health`,
-    swaggerUrl: `${protocol}//company.${baseDomain}/docs`,
   },
   {
     name: "Pay",
     healthUrl: `${protocol}//pay.${baseDomain}/api/v1/pay/health`,
     swaggerUrl: `${protocol}//pay.${baseDomain}/swagger`,
-  },
-  {
-    name: "Tax",
-    healthUrl: `${protocol}//tax.${baseDomain}/api/v1/taxes/health`,
-    swaggerUrl: `${protocol}//tax.${baseDomain}/swagger`,
   },
   {
     name: "Report",

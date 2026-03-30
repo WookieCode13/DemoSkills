@@ -11,6 +11,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{B3B8E6A4
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EmployeeAPI.UnitTests", "apis\EmployeeAPI\tests\unit\EmployeeAPI.UnitTests\EmployeeAPI.UnitTests.csproj", "{C3B6A4A8-9D4E-4F3C-8B4A-2A6E7E3BC5F1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReportAPI", "apis\ReportAPI\ReportAPI.csproj", "{DF1F0126-664F-459E-957E-D8433C4E4380}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,9 +30,14 @@ Global
 		{C3B6A4A8-9D4E-4F3C-8B4A-2A6E7E3BC5F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C3B6A4A8-9D4E-4F3C-8B4A-2A6E7E3BC5F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C3B6A4A8-9D4E-4F3C-8B4A-2A6E7E3BC5F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF1F0126-664F-459E-957E-D8433C4E4380}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF1F0126-664F-459E-957E-D8433C4E4380}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF1F0126-664F-459E-957E-D8433C4E4380}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF1F0126-664F-459E-957E-D8433C4E4380}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{67AD5402-595C-49D0-A0DB-2E40B549AE7D} = {DF9B0123-6827-496A-978E-7D273EF1D9EB}
 		{C3B6A4A8-9D4E-4F3C-8B4A-2A6E7E3BC5F1} = {B3B8E6A4-8B8F-4A3C-9FC3-2E8F6E2E9A10}
+		{DF1F0126-664F-459E-957E-D8433C4E4380} = {DF9B0123-6827-496A-978E-7D273EF1D9EB}
 	EndGlobalSection
 EndGlobal
