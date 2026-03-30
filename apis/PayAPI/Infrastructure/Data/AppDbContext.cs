@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using PayAPI.Domain.Entities;
 using Shared.Security.Net.Auditing;
 using Shared.Security.Net.Auth.Domain;
 
@@ -105,6 +106,19 @@ public class AppDbContext : DbContext
             entity.Property(e => e.CreatedUtc).HasColumnName("created_utc");
             entity.Property(e => e.UpdatedUtc).HasColumnName("updated_utc");
         });
+
+        modelBuilder.Entity<TaxDefinition>(entity =>
+        {
+            entity.ToTable("tax");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Year).HasColumnName("year");
+            entity.Property(e => e.TaxCode).HasColumnName("tax_code");
+            entity.Property(e => e.Percent).HasColumnName("percent");
+            entity.Property(e => e.Amount).HasColumnName("amount");
+            entity.Property(e => e.CreatedUtc).HasColumnName("created_utc");
+            entity.Property(e => e.UpdatedUtc).HasColumnName("updated_utc");
+        });
     }
 
     public DbSet<AuditLog> AuditLogs { get; set; } = null!;
@@ -113,4 +127,5 @@ public class AppDbContext : DbContext
     public DbSet<Permission> AuthPermissions { get; set; } = null!;
     public DbSet<RolePermission> AuthRolePermissions { get; set; } = null!;
     public DbSet<UserCompanyAccess> AuthUserCompanyAccess { get; set; } = null!;
+    public DbSet<TaxDefinition> Taxes { get; set; } = null!;
 }
