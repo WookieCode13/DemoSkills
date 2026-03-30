@@ -30,6 +30,20 @@ public class AppDbContext : DbContext
             entity.Property(e => e.DeletedUtc).HasColumnName("deleted_utc");
         });
 
+        modelBuilder.Entity<Company>(entity =>
+        {
+            entity.ToTable("company");
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ShortCode).HasColumnName("short_code");
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.Industry).HasColumnName("industry");
+            entity.Property(e => e.Email).HasColumnName("email");
+            entity.Property(e => e.Phone).HasColumnName("phone");
+            entity.Property(e => e.CreatedUtc).HasColumnName("created_utc");
+            entity.Property(e => e.UpdatedUtc).HasColumnName("updated_utc");
+            entity.Property(e => e.DeletedUtc).HasColumnName("deleted_utc");
+        });
+
         modelBuilder.Entity<AuditLog>(entity =>
         {
             entity.ToTable("audit_log");
@@ -123,6 +137,7 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<Employee> Employees { get; set; } = null!;
+    public DbSet<Company> Companies { get; set; } = null!;
     public DbSet<AuditLog> AuditLogs { get; set; } = null!;
 
     public DbSet<AppUser> AuthAppUsers { get; set; } = null!;
