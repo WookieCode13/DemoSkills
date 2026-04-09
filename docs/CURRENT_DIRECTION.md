@@ -28,13 +28,13 @@ This note captures the current simplification direction for the project so the r
 
 ### 4. Reduce API sprawl
 
-Current rough target shape:
+Current runtime shape on the branch:
 
 - `Admin API`: company + employee
 - `Payroll API`: pay + tax
 - `Report API`: separate for heavier processing and async/report demos
 
-This keeps some service boundaries without carrying too many small APIs.
+This is what the current Docker/runtime wiring reflects today, even though some legacy service directories still exist in the repo.
 
 ### 5. Use reports for queue/lambda demos
 
@@ -58,8 +58,8 @@ This keeps some service boundaries without carrying too many small APIs.
    - consolidate to 3 APIs
    - or go more monolithic
 2. Finish converting `ReportAPI` to .NET and remove remaining Python assumptions.
-3. Decide whether `CompanyAPI` should merge into `EmployeeAPI`.
-4. Decide whether `TaxCalculatorAPI` should merge into `PayAPI`.
+3. Decide whether to delete or archive the legacy `CompanyAPI` code now that company routes are served from `EmployeeAPI`.
+4. Decide whether to delete or archive the legacy `TaxCalculatorAPI` assumptions now that tax routes are served from `PayAPI`.
 5. Start building actual UI and backend workflows instead of more infrastructure churn.
 
 ## Practical Reminder

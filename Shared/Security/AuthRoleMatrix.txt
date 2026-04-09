@@ -29,6 +29,9 @@ employee-create         | Employee Create          | employee_api  | employee   
 employee-update         | Employee Update          | employee_api  | employee      | 0 | 1 | 1 | 0 | 1         | Update employee data
 employee-delete         | Employee Delete          | employee_api  | employee      | 0 | 0 | 0 | 1 | 1         | Delete employee record
 tax-read                | Tax Read                 | tax_api       | tax           | 0 | 1 | 0 | 0 | 1         | Read tax calculation data
+tax-create              | Tax Create               | tax_api       | tax           | 1 | 0 | 0 | 0 | 1         | Create tax calculation data
+tax-update              | Tax Update               | tax_api       | tax           | 0 | 1 | 1 | 0 | 1         | Update tax calculation data
+tax-delete              | Tax Delete               | tax_api       | tax           | 0 | 0 | 0 | 1 | 1         | Delete tax calculation data
 report-read             | Report Read              | report_api    | report        | 0 | 1 | 0 | 0 | 1         | Read report data
 employee-self-read      | Employee Self Read       | employee_api  | employee      | 0 | 1 | 0 | 0 | 1         | Read my employee data
 employee-self-update    | Employee Self Update     | employee_api  | employee      | 0 | 1 | 1 | 0 | 1         | Update my employee data
@@ -51,6 +54,9 @@ super_admin             | employee-create
 super_admin             | employee-update
 super_admin             | employee-delete
 super_admin             | tax-read
+super_admin             | tax-create
+super_admin             | tax-update
+super_admin             | tax-delete
 super_admin             | report-read
 customer_service_create | company-create
 customer_service_create | company-read
@@ -59,6 +65,7 @@ customer_service_create | employee-create
 customer_service_create | employee-update
 customer_service_create | employee-delete
 customer_service_create | pay-view
+customer_service_create | tax-read
 customer_service_create | report-read
 customer_service        | company-read
 customer_service        | company-update
@@ -73,5 +80,6 @@ payroll_admin           | employee-create
 payroll_admin           | employee-update
 payroll_admin           | employee-delete
 payroll_admin           | employee-read
+payroll_admin           | tax-read
 employee_self_service   | employee-self-read
 employee_self_service   | employee-self-update
