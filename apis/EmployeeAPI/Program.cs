@@ -1,6 +1,8 @@
 using EmployeeAPI.Application.Employees;
+using EmployeeAPI.Application.Companies;
 using EmployeeAPI.Infrastructure.Data;
 using EmployeeAPI.Infrastructure.Auditing;
+using EmployeeAPI.Infrastructure.Companies;
 using EmployeeAPI.Infrastructure.Employees;
 using EmployeeAPI.Migrations;
 using FluentMigrator.Runner;
@@ -108,7 +110,9 @@ try
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
     builder.Services.AddScoped<EmployeeService>();
+    builder.Services.AddScoped<CompanyService>();
     builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+    builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
     builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
     builder.Services.AddScoped<CompanyTenantMiddleware>();
     builder.Services.AddHttpContextAccessor();
@@ -139,6 +143,14 @@ try
             policy.Requirements.Add(new PermissionRequirement(Permissions.EmployeeUpdate)));
         options.AddPolicy("EmployeeDelete", policy =>
             policy.Requirements.Add(new PermissionRequirement(Permissions.EmployeeDelete)));
+        options.AddPolicy("CompanyRead", policy =>
+            policy.Requirements.Add(new PermissionRequirement(Permissions.CompanyRead)));
+        options.AddPolicy("CompanyCreate", policy =>
+            policy.Requirements.Add(new PermissionRequirement(Permissions.CompanyCreate)));
+        options.AddPolicy("CompanyUpdate", policy =>
+            policy.Requirements.Add(new PermissionRequirement(Permissions.CompanyUpdate)));
+        options.AddPolicy("CompanyDelete", policy =>
+            policy.Requirements.Add(new PermissionRequirement(Permissions.CompanyDelete)));
     });
 
     // Optional: serve the app under a sub-path (e.g., "/employee")

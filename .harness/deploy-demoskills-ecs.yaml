@@ -15,7 +15,7 @@ pipeline:
     - name: IMAGE_TAGS
       type: String
       value: <+input>
-      description: Space- or comma-separated list of tags; each tag must start with service prefix (EmployeeAPI-*, CompanyAPI-*, etc).
+      description: Space- or comma-separated list of tags; each tag must start with service prefix (EmployeeAPI-*, PayAPI-*, ReportAPI-*, etc).
       required: true
     - name: TARGET_ENV
       type: String
@@ -100,7 +100,7 @@ pipeline:
                         exit 1
                       fi
 
-                      SERVICES="EmployeeAPI CompanyAPI TaxCalculatorAPI PayAPI ReportAPI Dashboard"
+                      SERVICES="EmployeeAPI PayAPI ReportAPI Dashboard"
                       DEPLOYED=""
                       SKIPPED=""
 

@@ -22,8 +22,8 @@ pipeline:
       description: Target ECS cluster.
     - name: SERVICE_NAMES
       type: String
-      value: <+input>.default(employeeapi,companyapi,payapi,taxcalculatorapi,reportapi,dashboard)
-      description: Comma-separated short service names (e.g., employeeapi,companyapi,payapi,taxcalculatorapi,reportapi,dashboard).
+      value: <+input>.default(employeeapi,payapi,reportapi,dashboard)
+      description: Comma-separated short service names (e.g., employeeapi,payapi,reportapi,dashboard).
     - name: EC2_INSTANCE_NAMES
       type: String
       value: <+input>.default(Local-To-Postgres-Connection-SSM)

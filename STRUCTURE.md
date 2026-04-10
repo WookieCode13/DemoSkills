@@ -8,20 +8,14 @@ DemoSkills is organized as a multi-service practice repo with shared security co
 graph TD
     A[Dashboard / API Clients] --> B[nginx or ALB Routing]
     B --> C1[EmployeeAPI]
-    B --> C2[CompanyAPI]
-    B --> C3[PayAPI]
-    B --> C4[TaxCalculatorAPI]
-    B --> C5[ReportAPI]
+    B --> C2[PayAPI]
+    B --> C3[ReportAPI]
     C1 --> D[PostgreSQL]
     C2 --> D
     C3 --> D
-    C4 --> D
-    C5 --> D
     E[Shared Security Modules] --> C1
     E --> C2
     E --> C3
-    E --> C4
-    E --> C5
 ```
 
 ## Top-Level Layout
@@ -47,11 +41,10 @@ DemoSkills/
 
 ## API Projects
 
-- `apis/EmployeeAPI` is the main .NET API and currently contains the most complete auth, migration, and testing flow.
-- `apis/CompanyAPI` is a Python/FastAPI service.
-- `apis/PayAPI` is a .NET API for payroll-oriented workflows.
-- `apis/TaxCalculatorAPI` is a .NET API for tax-related logic.
+- `apis/EmployeeAPI` is the main .NET API and currently contains the most complete auth, migration, and testing flow. It currently serves both employee and company endpoints.
+- `apis/PayAPI` is a .NET API for payroll-oriented workflows and currently serves tax endpoints as well.
 - `apis/ReportAPI` is a Python/FastAPI service for reporting scenarios.
+- `apis/CompanyAPI` is a legacy Python/FastAPI service still present in the repo, but it is not part of the current Docker Compose runtime.
 - `apis/aws.http` contains local/request testing helpers.
 
 ## Shared Code
@@ -64,7 +57,7 @@ DemoSkills/
 ## UI and Local Runtime
 
 - `dashboard/` contains the lightweight frontend used for local and demo flows.
-- `docker-compose.yml` starts nginx, the dashboard, PostgreSQL, and the API containers together.
+- `docker-compose.yml` starts nginx, the dashboard, PostgreSQL, and the currently active API containers together.
 - `docker/nginx/` contains the local routing configuration used to mirror the multi-service setup.
 
 ## Infrastructure and Delivery
@@ -80,3 +73,4 @@ DemoSkills/
 - Auth uses JWT validation plus database-backed authorization concepts.
 - PostgreSQL is shared across services for local and hosted practice environments.
 - Tests live near the owning project, with `EmployeeAPI` currently having the strongest unit-test coverage structure.
+

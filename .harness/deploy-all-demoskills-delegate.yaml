@@ -33,8 +33,6 @@ pipeline:
           matrix:
             service:
               - EmployeeAPI
-              - CompanyAPI
-              - TaxCalculatorAPI
               - PayAPI
               - ReportAPI
               - Dashboard

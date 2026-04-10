@@ -2,8 +2,10 @@ using System;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using PayAPI.Application.Taxes;
 using PayAPI.Infrastructure.Auth;
 using PayAPI.Infrastructure.Data;
+using PayAPI.Infrastructure.Taxes;
 using Serilog;
 using Serilog.Formatting.Compact;
 using Shared.Security.Net.Auth;
@@ -88,6 +90,7 @@ try
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
     builder.Services.AddHttpContextAccessor();
+    builder.Services.AddScoped<ITaxRepository, TaxRepository>();
     builder.Services.AddScoped<IUserAuthRepository, UserAuthRepository>();
     builder.Services.AddScoped<IUserAuthContextProvider, UserAuthContextProvider>();
     builder.Services.AddScoped<IAppAuthorizationService, AppAuthorizationService>();
@@ -97,6 +100,8 @@ try
     {
         options.AddPolicy("PayView", policy =>
             policy.Requirements.Add(new PermissionRequirement(Permissions.PayView)));
+        options.AddPolicy("TaxRead", policy =>
+            policy.Requirements.Add(new PermissionRequirement(Permissions.TaxRead)));
     });
 
     var app = builder.Build();
