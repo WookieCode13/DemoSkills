@@ -8,10 +8,12 @@ IP_ADDRESS="${1:-192.168.0.94}"
 TARGET_BRANCH="${2:-}"
 CONF_PATH="/etc/dnsmasq.d/demoskills.conf"
 REPO_DIR="${REPO_DIR:-$PWD}"
+export DASHBOARD_UI_VARIANT="${DASHBOARD_UI_VARIANT:-react-ts-v1}"
 
 cd "$REPO_DIR"
 
 echo "Repo: $REPO_DIR"
+echo "Dashboard UI variant: $DASHBOARD_UI_VARIANT"
 if [[ -n "$TARGET_BRANCH" ]]; then
   echo "Target git branch: $TARGET_BRANCH"
   git fetch origin
