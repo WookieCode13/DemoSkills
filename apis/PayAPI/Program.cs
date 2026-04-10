@@ -46,6 +46,7 @@ try
     {
         dashboardOrigins.Add("http://longranch.wookie");
         dashboardOrigins.Add("http://dashboard.longranch.wookie");
+        dashboardOrigins.Add("http://localhost:5173");
     }
     builder.Services.AddCors(options =>
     {

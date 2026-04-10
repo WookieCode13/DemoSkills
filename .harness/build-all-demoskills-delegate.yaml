@@ -24,6 +24,11 @@ pipeline:
       description: Run tests? Yes to run, No to skip
       required: true
       default: "Yes"
+    - name: DASHBOARD_UI_VARIANT
+      type: String
+      value: <+input>.default(react-ts-v1)
+      description: Dashboard UI variant used only when building Dashboard.
+      required: true
 
   stages:
     - stage:
@@ -74,6 +79,7 @@ pipeline:
                       AWS_REGION: <+secrets.getValue("proj-ds-aws-region")>
                       TARGET_ENV: <+pipeline.variables.TARGET_ENV>
                       PERFORM_TESTS: <+pipeline.variables.PERFORM_TESTS>
+                      DASHBOARD_UI_VARIANT: <+pipeline.variables.DASHBOARD_UI_VARIANT>
                     command: |-
                       set -euo pipefail
 
@@ -116,7 +122,7 @@ pipeline:
                         fi
 
                         if [ "$SERVICE_NAME" = "Dashboard" ]; then
-                          docker build -t demo-image:$IMAGE_TAG -f dashboard/Dockerfile dashboard
+                          docker build --build-arg DASHBOARD_UI_VARIANT="$DASHBOARD_UI_VARIANT" -t demo-image:$IMAGE_TAG -f dashboard/Dockerfile dashboard
                         elif [ "$SERVICE_NAME" = "EmployeeAPI" ] || [ "$SERVICE_NAME" = "PayAPI" ] || [ "$SERVICE_NAME" = "ReportAPI" ]; then
                           # APIs that reference shared code should build from repo root context.
                           docker build -t demo-image:$IMAGE_TAG -f apis/$SERVICE_NAME/Dockerfile .

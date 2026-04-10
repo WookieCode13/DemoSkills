@@ -19,7 +19,7 @@ const services = [
   {
     name: "Report",
     healthUrl: `${protocol}//report.${baseDomain}/api/v1/reports/health`,
-    swaggerUrl: `${protocol}//report.${baseDomain}/docs`,
+    swaggerUrl: `${protocol}//report.${baseDomain}/swagger`,
   },
 ];
 

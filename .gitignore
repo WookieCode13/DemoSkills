@@ -61,6 +61,11 @@ build/
 dist/
 *.egg-info/
 *.egg
+dashboard/uis/**/node_modules/
+dashboard/uis/**/dist/
+dashboard/uis/**/*.tsbuildinfo
+dashboard/uis/**/vite.config.d.ts
+dashboard/uis/**/vite.config.js
 
 # Testing / coverage
 .pytest_cache/
